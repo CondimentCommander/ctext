@@ -1,0 +1,24 @@
+{
+  "name": "ctext",
+  "version": "1.0.0",
+  "description": "A command-line tool for processing text",
+  "main": "ctext.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "ctext": "./ctext.js"
+  },
+  "keywords": [
+    "cli",
+    "text",
+    "string"
+  ],
+  "author": "CarbonSmasher",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.0.1",
+    "minimist": "^1.2.5"
+  },
+  "type":"module"
+}
