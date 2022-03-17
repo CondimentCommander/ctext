@@ -1,5 +1,7 @@
 import fs from 'fs';
 
+export const emptyIdentifier = 'CTEXT_EMPTY'
+
 /* Splits comma-separated arguments into an array */
 export const splitArgs = (args) => {
 	return args.split(',');
@@ -8,6 +10,7 @@ export const splitArgs = (args) => {
 /* Parses an input and retrieves contents of a file if specified */
 export const parseInput = (input) => {
 	let text = input;
+	if (text === undefined || text === emptyIdentifier) return '';
 	if (fs.existsSync(input)) {
 		try {
 			text = fs.readFileSync(input, 'utf-8');
@@ -20,6 +23,24 @@ export const parseInput = (input) => {
 	}
 	text = text.replace(/\\n/mg, '\n');
 	return text;
+};
+
+export const operatorAliases = {
+	'len': 'length',
+	'rep': 'replace',
+	'sub': 'substring',
+	'rev': 'reverse',
+	'cat': 'append',
+	'concatenate': 'append',
+	'rep': 'repeat',
+	'rpl': 'replace',
+	'dup': 'duplicate',
+	'ins': 'insert',
+	'del': 'erase',
+	'ers': 'erase',
+	'abr': 'abbreviate',
+	'abbr': 'abbreviate',
+	'put': 'place'
 };
 
 /* Converts text to an array of lines */
@@ -147,8 +168,8 @@ export class Operator {
 
 /* The list of operators available */
 export const operators = {
-	'rev': new Operator(
-		'rev',
+	'reverse': new Operator(
+		'reverse',
 		'Reverses text direction',
 		(input, argument) => {
 			let out = '';
@@ -190,25 +211,22 @@ export const operators = {
 		},
 		'single'
 	),
-	'cat': new Operator(
-		'cat',
+	'join': new Operator(
+		'join',
 		'Joins multiple text strings',
 		(inputs, argument) => {
-			if (argument === 'CTEXT_EMPTY') {
-				let out = '';
-				inputs.forEach((item) => {
-					out = out + item;
-				});
-				return [out];
-			} else {
-				let out = [];
-				inputs.forEach((input) => {
-					out.push(input + parseInput(argument));
-				});
-				return out;
-			}
+			const arg = parseInput(argument);
+			return [inputs.join(arg)];
 		},
 		'multi'
+	),
+	'append': new Operator(
+		'append',
+		'Appends a string to another',
+		(input, argument) => {
+			return input + parseInput(argument);
+		},
+		'single'
 	),
 	'repeat': new Operator(
 		'repeat',
@@ -223,8 +241,8 @@ export const operators = {
 		},
 		'single'
 	),
-	'sub': new Operator(
-		'sub',
+	'substring': new Operator(
+		'substring',
 		'Obtains a substring of text',
 		(input, argument) => {
 			if (argument.includes(',')) {
@@ -276,8 +294,8 @@ export const operators = {
 		},
 		'single'
 	),
-	'rep': new Operator(
-		'rep',
+	'replace': new Operator(
+		'replace',
 		'Replaces occurences of a string with another one',
 		(input, argument) => {
 			const args = splitArgs(argument);
@@ -413,7 +431,6 @@ export const operators = {
 				const op = operators[argument];
 				return op.name + ': ' + op.desc;
 			} catch (err) {
-				console.log(err);
 				return "Operator does not exist!";
 			}
 		},
@@ -447,8 +464,8 @@ export const operators = {
 		},
 		'single'
 	),
-	'abbr': new Operator(
-		'abbr',
+	'abbreviate': new Operator(
+		'abbreviate',
 		'Abbreviates a series of words',
 		(input, argument) => {
 			const split = input.toUpperCase().split(' ');
@@ -460,8 +477,8 @@ export const operators = {
 		},
 		'single'
 	),
-	'dup': new Operator(
-		'dup',
+	'duplicate': new Operator(
+		'duplicate',
 		'Duplicates a single input into multiple of the same',
 		(input, argument) => {
 			const times = parseIntArg(argument, input);
@@ -500,6 +517,43 @@ export const operators = {
 				if (endPos === -1) endPos = input.length;
 				return replaceAt(input, arg, endPos + 1, '');
 			}
+		},
+		'single'
+	),
+	'length': new Operator(
+		'length',
+		'Obtains the length of a string, including any whitespace',
+		(input, argument) => {
+			return toString(input.length);
+		},
+		'single'
+	),
+	'characters': new Operator(
+		'characters',
+		'Counts the number of non-whitespace characters in a string',
+		(input, argument) => {
+			const remove = input.replace(/\s/mg, '');
+			return toString(remove.length);
+		},
+		'single'
+	),
+	'filter': new Operator(
+		'filter',
+		'Filters lines that follow a criteria',
+		(input, argument) => {
+			const split = input.split('\n');
+			const args = splitArgs(argument);
+			let out = '';
+			switch (parseInput(args[0])) {
+				case 'has': {
+					const search = parseInput(args[1]);
+					out = split.filter((line) => {
+						return (line.indexOf(search) !== -1);
+					});
+					break;
+				}
+			}
+			return out.join('\n');
 		},
 		'single'
 	)

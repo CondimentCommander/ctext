@@ -2,7 +2,7 @@
 import minimist from 'minimist';
 import fs from 'fs';
 
-import { intParseArgs, operators, splitArgs, parseInput } from './operators.js'
+import { emptyIdentifier, intParseArgs, operators, splitArgs, parseInput, operatorAliases } from './operators.js'
 
 /* Detects if an argument is an operator */
 const isOperator = (argument) => {
@@ -14,22 +14,41 @@ const isOperator = (argument) => {
 	return !(notOps.includes(parts[0])) && Object.keys(operators).includes(parts[0]);
 };
 
+/* Replaces an operator alias with the correct name */
+const replaceAlias = (name) => {
+	if (Object.keys(operatorAliases).includes(name)) {
+		return operatorAliases[name];
+	} else {
+		return name;
+	}
+};
+
 /* Does preprocessing on the command before sending args to minimist */
 const processArgs = () => {
 	const slice = process.argv.slice(2);
 	let args = [];
 	for (let i = 0; i < slice.length; i++) {
 		const item = slice[i];
-		args.push(item);
-		if (isOperator(item.substring(item.lastIndexOf('-') + 1, item.length))) {
+		const split = item.split('[');
+		const itemName = split[0].substring(split[0].lastIndexOf('-') + 1, split[0].length);
+		if (isOperator(replaceAlias(itemName)) && split[0][0] === '-') {
+			if (split.length > 1) {
+				args.push('--' + replaceAlias(itemName) + '[' + split[1]);
+			} else {
+				args.push('--' + replaceAlias(itemName));
+			}
 			const nextItem = slice[i + 1];
 			if (nextItem === undefined) {
-				args.push('CTEXT_EMPTY');
+				args.push(emptyIdentifier);
 			} else {
-				if (isOperator(nextItem.substring(nextItem.lastIndexOf('-') + 1, nextItem.length))) {
-					args.push('CTEXT_EMPTY');
+				const nextSplit = nextItem.split('[');
+				const nextName = nextSplit[0].substring(nextSplit[0].lastIndexOf('-') + 1, nextSplit[0].length);
+				if (isOperator(replaceAlias(nextName)) && nextSplit[0][0] === '-') {
+					args.push(emptyIdentifier);
 				}
 			}
+		} else {
+			args.push(item);
 		}
 	}
 	return minimist(args);
@@ -111,6 +130,8 @@ const main = (argv) => {
 					} else {
 						evaluated.push(result);
 					}
+				} else {
+					evaluated.push(lastEvaluation[i]);
 				}
 			}
 		} else {
@@ -121,6 +142,8 @@ const main = (argv) => {
 				lastEvaluation.forEach((value, index) => {
 					if (operatorArgument.selection.includes(index)) {
 						items.push(value);
+					} else {
+						evaluated.push(value);
 					}
 				});
 				for (let i = 0; i < operatorArgument.selection.length; i++) {
@@ -137,7 +160,7 @@ const main = (argv) => {
 	/* Pipe values to outputs */
 	evaluated.forEach((value, i) => {
 		if (argv.h !== true) {
-			const maxLength = 150;
+			const maxLength = 450;
 			if (value.length <= maxLength) {
 				console.log('"' + value + '"');
 			} else {
