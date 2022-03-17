@@ -1,10 +1,12 @@
 import fs from 'fs';
 
+/* Splits comma-separated arguments into an array */
 export const splitArgs = (args) => {
 	return args.split(',');
 };
 
-export const resolveInput = (input) => {
+/* Parses an input and retrieves contents of a file if specified */
+export const parseInput = (input) => {
 	let text = input;
 	if (fs.existsSync(input)) {
 		try {
@@ -20,10 +22,12 @@ export const resolveInput = (input) => {
 	return text;
 };
 
+/* Converts text to an array of lines */
 const linify = (text) => {
 	return text.split('\n');
 };
 
+/* Converts text lines back into a single string */
 const textify = (lines) => {
 	let out = '';
 	lines.forEach((line, i) => {
@@ -35,13 +39,38 @@ const textify = (lines) => {
 	return out;
 };
 
-export const intParseArgs = (args) => {
-	for (let i = 0; i < args.length; i++) {
-		args[i] = parseInt(args[i]);
+
+const specificIndexOf = (string, regex, pos) => {
+	const matches = string.matchAll(regex);
+	let positions = [];
+	for (const match of matches) {
+		positions.push(match.index);
 	}
-	return args;
+	return positions[pos];
 };
 
+/* Parses a single integer argument */
+const parseIntArg = (argument, input) => {
+	if (argument[0] === 'w') {
+		const wordPos = parseInt(argument.substring(1, argument.length));
+		let index = specificIndexOf(input, /\s/mg, wordPos - 1);
+		if (index === undefined) index = 0;
+		return index;
+	} else {
+		return parseInt(argument);
+	}
+};
+
+/* Parses arguments as integers */
+export const intParseArgs = (args, input) => {
+	let out = [];
+	args.forEach((arg) => {
+		out.push(parseIntArg(arg, input));
+	});
+	return out;
+};
+
+/* Obtains a box substring of text */
 const box = (text, indexes) => {
 	const lines = linify(text);
 	const start = {line: indexes[0] - 1, col: indexes[1] - 1};
@@ -53,6 +82,7 @@ const box = (text, indexes) => {
 	return out;
 };
 
+/* Replaces text at a position in a string */
 const replaceAt = (string, pos, size, text) => {
 	return string.substring(0, pos) + text + string.substring(pos + size, string.length);
 };
@@ -85,6 +115,7 @@ const numEncodeMap = {
 	'y': 25,
 	'z': 26,
 }
+/* Encodes text to an array of numbers */
 const numEncode = (string) => {
 	const lower = string.toLowerCase();
 	let out = [];
@@ -95,6 +126,7 @@ const numEncode = (string) => {
 };
 
 const numDecodeMap = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'j', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+/* Decodes number-encoded text */
 const numDecode = (nums) => {
 	let out = '';
 	for (let i = 0; i < nums.length; i++) {
@@ -103,6 +135,7 @@ const numDecode = (nums) => {
 	return out;
 };
 
+/* Defines an operator */
 export class Operator {
 	constructor(name, desc, fun, type) {
 		this.name = name;
@@ -111,6 +144,8 @@ export class Operator {
 		this.type = type;
 	}
 }
+
+/* The list of operators available */
 export const operators = {
 	'rev': new Operator(
 		'rev',
@@ -159,7 +194,7 @@ export const operators = {
 		'cat',
 		'Joins multiple text strings',
 		(inputs, argument) => {
-			if (argument === true) {
+			if (argument === 'CTEXT_EMPTY') {
 				let out = '';
 				inputs.forEach((item) => {
 					out = out + item;
@@ -168,7 +203,7 @@ export const operators = {
 			} else {
 				let out = [];
 				inputs.forEach((input) => {
-					out.push(input + resolveInput(argument));
+					out.push(input + parseInput(argument));
 				});
 				return out;
 			}
@@ -179,7 +214,7 @@ export const operators = {
 		'repeat',
 		'Repeats a string a certain amount of times',
 		(input, argument) => {
-			const times = parseInt(argument);
+			const times = parseIntArg(argument, input);
 			let out = '';
 			for (let i = 0; i < times; i++) {
 				out = out + input;
@@ -193,12 +228,12 @@ export const operators = {
 		'Obtains a substring of text',
 		(input, argument) => {
 			if (argument.includes(',')) {
-				const args = splitArgs(argument);
-				args = intParseArgs(args);
+				let args = splitArgs(argument);
+				args = intParseArgs(args, input);
 				return input.substring(args[0], args[1]);
 			} else if (argument.includes('-')) {
-				const args = argument.split('-');
-				args = intParseArgs(args);
+				let args = argument.split('-');
+				args = intParseArgs(args, input);
 				return input.substring(args[0], args[0] + args[1]);
 			} else {
 				return input;
@@ -211,13 +246,13 @@ export const operators = {
 		'Selects a substring using row and column indexes',
 		(input, argument) => {
 			if (argument.includes(',')) {
-				const args = splitArgs(argument);
-				args = intParseArgs(args);
+				let args = splitArgs(argument);
+				args = intParseArgs(args, input);
 				const selection = box(input, [args[0], args[1], args[2] + 1, args[3] + 1]);
 				return textify(selection);
 			} else if (argument.includes('-')) {
-				const args = argument.split('-');
-				args = intParseArgs(args);
+				let args = argument.split('-');
+				args = intParseArgs(args, input);
 				const selection = box(input, [args[0], args[1], args[0] + args[2], args[1] + args[3]]);
 				return textify(selection);
 			} else {
@@ -232,11 +267,11 @@ export const operators = {
 		(input, argument) => {
 			if (input.includes(',')) {
 				const args = splitArgs(argument);
-				args = intParseArgs(args);
+				args = intParseArgs(args, input);
 				const lines = linify(input);
 				return lines[args[0] - 1][args[1] - 1];
 			} else {
-				return input[parseInt(argument)];
+				return input[parseIntArg(argument, input)];
 			}
 		},
 		'single'
@@ -246,8 +281,8 @@ export const operators = {
 		'Replaces occurences of a string with another one',
 		(input, argument) => {
 			const args = splitArgs(argument);
-			const reg = new RegExp(resolveInput(args[0]), 'mg');
-			return input.replace(reg, resolveInput(args[1]));
+			const reg = new RegExp(parseInput(args[0]), 'mg');
+			return input.replace(reg, parseInput(args[1]));
 		},
 		'single'
 	),
@@ -255,7 +290,7 @@ export const operators = {
 		'weave',
 		'Interlaces multiple strings',
 		(inputs, argument) => {
-			const size = parseInt(argument);
+			const size = parseIntArg(argument, input);
 			let out = '';
 			let done = false;
 			let i = 0;
@@ -279,7 +314,7 @@ export const operators = {
 		'shrink',
 		'Removes characters from the beginning or end of text',
 		(input, argument) => {
-			const arg = parseInt(argument);
+			const arg = parseIntArg(argument, input);
 			if (arg < 0) {
 				return input.substring(0, input.length + arg);
 			} else {
@@ -292,8 +327,7 @@ export const operators = {
 		'oneliner',
 		'Removes all newlines',
 		(input, argument) => {
-			console.log(argument);
-			const arg = (argument === 'true');
+			const arg = (argument === 'CTEXT_EMPTY');
 			if (arg) {
 				return input.replace(/\n/mg, ' ');
 			} else {
@@ -307,12 +341,12 @@ export const operators = {
 		'Replaces text at a specified index',
 		(input, argument) => {
 			const args = splitArgs(argument);
-			const index = parseInt(args[0]);
+			const index = parseIntArg(args[0], input);
 			const text = args[1];
 			if (args.length >= 3) {
-				return replaceAt(input, index, parseInt(args[2]), resolveInput(text));
+				return replaceAt(input, index, parseIntArg(args[2], input), parseInput(text));
 			} else {
-				return replaceAt(input, index, text.length, resolveInput(text));
+				return replaceAt(input, index, text.length, parseInput(text));
 			}
 		},
 		'single'
@@ -322,7 +356,7 @@ export const operators = {
 		'Repeats letters',
 		(input, argument) => {
 			let out = '';
-			const size = parseInt(argument);
+			const size = parseIntArg(argument, input);
 			for (let i = 0; i < input.length; i++) {
 				if (input[i] == ' ') {
 					out = out + input[i];
@@ -341,7 +375,7 @@ export const operators = {
 		'One time pad cipher',
 		(input, argument) => {
 			const args = splitArgs(argument);
-			const key = numEncode(resolveInput(args[0]));
+			const key = numEncode(parseInput(args[0]));
 			const encoded = numEncode(input);
 
 			const wrap = (value) => {
@@ -390,8 +424,82 @@ export const operators = {
 		'Inserts text at a position in another string',
 		(input, argument) => {
 			const args = splitArgs(argument);
-			const pos = parseInt(args[1]);
-			return input.substring(0, pos) + resolveInput(args[0]) + input.substring(pos, input.length);
+			const pos = parseIntArg(args[1], input);
+			return input.substring(0, pos) + parseInput(args[0]) + input.substring(pos, input.length);
+		},
+		'single'
+	),
+	'squash': new Operator(
+		'squash',
+		'Removes repeated characters',
+		(input, argument) => {
+			let out = '';
+			for (let i = 0; i < input.length; i++) {
+				if (i !== 0) {
+					if (input[i] != input[i - 1]) {
+						out = out + input[i];
+					}
+				} else {
+					out = out + input[i];
+				}
+			}
+			return out;
+		},
+		'single'
+	),
+	'abbr': new Operator(
+		'abbr',
+		'Abbreviates a series of words',
+		(input, argument) => {
+			const split = input.toUpperCase().split(' ');
+			let out = '';
+			split.forEach((word) => {
+				out = out + word[0];
+			});
+			return out;
+		},
+		'single'
+	),
+	'dup': new Operator(
+		'dup',
+		'Duplicates a single input into multiple of the same',
+		(input, argument) => {
+			const times = parseIntArg(argument, input);
+			let array = [];
+			for (let i = 0; i < times; i++) {
+				array.push(input);
+			}
+			return array;
+		},
+		'single'
+	),
+	'split': new Operator(
+		'split',
+		'Splits a string into multiple values based on a delimiter',
+		(input, argument) => {
+			const split = input.split(parseInput(argument));
+			return split;
+		},
+		'single'
+	),
+	'erase': new Operator(
+		'erase',
+		'Removes part of a string',
+		(input, argument) => {
+			if (argument.includes(',')) {
+				let args = splitArgs(argument);
+				args = intParseArgs(args, input);
+				return replaceAt(input, args[0], args[1] - args[0], '');
+			} else if (argument.includes('-')) {
+				let args = argument.split('-');
+				args = intParseArgs(args, input);
+				return replaceAt(input, args[0], args[1], '');
+			} else {
+				const arg = parseIntArg(argument, input);
+				let endPos = input.substring(arg + 1, input.length).indexOf(' ');
+				if (endPos === -1) endPos = input.length;
+				return replaceAt(input, arg, endPos + 1, '');
+			}
 		},
 		'single'
 	)
