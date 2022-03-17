@@ -107,7 +107,7 @@ const main = (argv) => {
 				const object = {
 					'name': name,
 					'selection': selection,
-					'arg': arg
+					'arg': arg.toString()
 				};
 				opsToApply.push(object);
 			});
@@ -146,12 +146,8 @@ const main = (argv) => {
 						evaluated.push(value);
 					}
 				});
-				for (let i = 0; i < operatorArgument.selection.length; i++) {
-					//evaluated.splice(operatorArgument.selection[i] - i, 1);
-				}
 				const operated = op.fun(items, operatorArgument.arg);
 				for (let i = 0; i < operated.length; i++) {
-					//evaluated.splice(operatorArgument.selection[i], 0, operated[i]);
 					evaluated.push(operated[i]);
 				}
 			}
@@ -162,9 +158,9 @@ const main = (argv) => {
 		if (argv.h !== true) {
 			const maxLength = 450;
 			if (value.length <= maxLength) {
-				console.log('"' + value + '"');
+				console.log(`"${value}"`);
 			} else {
-				console.log("String is larger than " + maxLength + " characters, will not print");
+				console.log(`String is larger than ${maxLength} characters, will not print`);
 			}
 		}
 		try {

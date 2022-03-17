@@ -40,7 +40,8 @@ export const operatorAliases = {
 	'ers': 'erase',
 	'abr': 'abbreviate',
 	'abbr': 'abbreviate',
-	'put': 'place'
+	'put': 'place',
+	'yell': 'stretch'
 };
 
 /* Converts text to an array of lines */
@@ -60,7 +61,7 @@ const textify = (lines) => {
 	return out;
 };
 
-
+/* Gets the index of a specific occurence of a search term in a string */
 const specificIndexOf = (string, regex, pos) => {
 	const matches = string.matchAll(regex);
 	let positions = [];
@@ -72,6 +73,7 @@ const specificIndexOf = (string, regex, pos) => {
 
 /* Parses a single integer argument */
 const parseIntArg = (argument, input) => {
+	if (argument === undefined || argument === emptyIdentifier) return 0; 
 	if (argument[0] === 'w') {
 		const wordPos = parseInt(argument.substring(1, argument.length));
 		let index = specificIndexOf(input, /\s/mg, wordPos - 1);
@@ -232,10 +234,17 @@ export const operators = {
 		'repeat',
 		'Repeats a string a certain amount of times',
 		(input, argument) => {
-			const times = parseIntArg(argument, input);
+			console.log(argument);
+			const args = splitArgs(argument);
+			const times = parseIntArg(args[0], input);
+			const delimiter = parseInput(args[1]);
 			let out = '';
 			for (let i = 0; i < times; i++) {
-				out = out + input;
+				if (i === times - 1) {
+					out = out + input;
+				} else {
+					out = out + input + delimiter;
+				}
 			}
 			return out;
 		},
@@ -369,14 +378,14 @@ export const operators = {
 		},
 		'single'
 	),
-	'yell': new Operator(
-		'yell',
+	'stretch': new Operator(
+		'stretch',
 		'Repeats letters',
 		(input, argument) => {
 			let out = '';
 			const size = parseIntArg(argument, input);
 			for (let i = 0; i < input.length; i++) {
-				if (input[i] == ' ') {
+				if (input[i] === ' ') {
 					out = out + input[i];
 				} else {
 					for (let j = 0; j < size; j++) {
@@ -429,7 +438,7 @@ export const operators = {
 		(input, argument) => {
 			try {
 				const op = operators[argument];
-				return op.name + ': ' + op.desc;
+				return `${op.name}: ${op.desc}`;
 			} catch (err) {
 				return "Operator does not exist!";
 			}
@@ -524,7 +533,7 @@ export const operators = {
 		'length',
 		'Obtains the length of a string, including any whitespace',
 		(input, argument) => {
-			return toString(input.length);
+			return input.length.toString();
 		},
 		'single'
 	),
@@ -533,7 +542,7 @@ export const operators = {
 		'Counts the number of non-whitespace characters in a string',
 		(input, argument) => {
 			const remove = input.replace(/\s/mg, '');
-			return toString(remove.length);
+			return remove.length.toString();
 		},
 		'single'
 	),
@@ -554,6 +563,20 @@ export const operators = {
 				}
 			}
 			return out.join('\n');
+		},
+		'single'
+	),
+	'cshift': new Operator(
+		'cshift',
+		'Caesar\'s shift cipher',
+		(input, argument) => {
+			const amount = parseIntArg(argument);
+			const encode = numEncode(input);
+			let out = [];
+			encode.forEach((char) => {
+				out.push(char + amount);
+			});
+			return numDecode(out);
 		},
 		'single'
 	)
