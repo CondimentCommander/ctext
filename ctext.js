@@ -157,7 +157,7 @@ const main = (argv) => {
 	evaluated.forEach((value, i) => {
 		if (argv.h !== true) {
 			const maxLength = 450;
-			if (value.length <= maxLength) {
+			if (value.length <= maxLength || argv.f === true) {
 				console.log(`"${value}"`);
 			} else {
 				console.log(`String is larger than ${maxLength} characters, will not print`);
