@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import minimist from 'minimist';
 import fs from 'fs';
+import chalk from 'chalk';
 
-import { emptyIdentifier, intParseArgs, operators, splitArgs, parseInput, operatorAliases } from './operators.js'
+import { emptyIdentifier, intParseArgs, operators, splitArgs, parseInput, operatorAliases, removeIdentifier } from './operators.js'
 
 /* Detects if an argument is an operator */
 const isOperator = (argument) => {
@@ -81,6 +82,14 @@ const forceArray = (value) => {
 	}
 };
 
+/* Adds chalk styling */
+const fancify = (text) => {
+	const numbers = text.matchAll(/\d/mg);
+	for (const number of numbers) {
+
+	}
+};
+
 const evalInput = async (input, operator, argument) => {
 	return operator.fun(input, argument);
 };
@@ -118,17 +127,21 @@ const main = (argv) => {
 	opsToApply.forEach((operatorArgument) => {
 		const lastEvaluation = evaluated;
 		evaluated = [];
+		let toAppend = [];
 		let op = operators[operatorArgument.name];
 		if (op.type === 'single') {
 			for (let i = 0; i < lastEvaluation.length; i++) {
 				if (operatorArgument.selection.length === 0 || operatorArgument.selection.includes(i)) {
-					let result = op.fun(lastEvaluation[i], operatorArgument.arg);
-					if (Array.isArray(result)) {
-						result.forEach((value) => {
-							evaluated.push(value);
-						});
-					} else {
-						evaluated.push(result);
+					let result = op.fun(lastEvaluation[i], operatorArgument.arg, i);
+					if (result !== removeIdentifier) {
+						if (Array.isArray(result)) {
+							evaluated.push(result.shift());
+							result.forEach((value) => {
+								toAppend.push(value);
+							});
+						} else {
+							evaluated.push(result);
+						}
 					}
 				} else {
 					evaluated.push(lastEvaluation[i]);
@@ -136,7 +149,7 @@ const main = (argv) => {
 			}
 		} else {
 			if (operatorArgument.selection.length === 0) {
-				evaluated = op.fun(lastEvaluation, operatorArgument.arg);
+				evaluated = op.fun(lastEvaluation, operatorArgument.arg, 0);
 			} else {
 				let items = [];
 				lastEvaluation.forEach((value, index) => {
@@ -146,21 +159,24 @@ const main = (argv) => {
 						evaluated.push(value);
 					}
 				});
-				const operated = op.fun(items, operatorArgument.arg);
+				const operated = op.fun(items, operatorArgument.arg, 0);
 				for (let i = 0; i < operated.length; i++) {
 					evaluated.push(operated[i]);
 				}
 			}
 		}
+		toAppend.forEach((item) => {
+			evaluated.push(item);
+		});
 	});
 	/* Pipe values to outputs */
 	evaluated.forEach((value, i) => {
 		if (argv.h !== true) {
 			const maxLength = 450;
 			if (value.length <= maxLength || argv.f === true) {
-				console.log(`"${value}"`);
+				console.log(`${chalk.green('"')}${chalk.greenBright(value)}${chalk.green('"')}`);
 			} else {
-				console.log(`String is larger than ${maxLength} characters, will not print`);
+				console.log(chalk.yellow(`String ${i} is larger than ${maxLength} characters, will not print`));
 			}
 		}
 		try {
@@ -172,7 +188,7 @@ const main = (argv) => {
 						writeOutput(out, evaluated[0]);
 					});
 				} else {
-					console.log("You have more values than outputs! No outputs were written");
+					console.log(chalk.red('You have more values than outputs! No outputs were written'));
 				}
 			}
 		} catch (err) {
