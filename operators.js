@@ -13,6 +13,7 @@ export const splitArgs = (args) => {
 export const parseInput = (input) => {
 	let text = input.toString();
 	if (text === undefined || text === emptyIdentifier) return '';
+	text = text.replace(/\\e/img, '');
 	if (fs.existsSync(input)) {
 		try {
 			text = fs.readFileSync(input, 'utf-8');
@@ -315,7 +316,7 @@ export const operators = {
 		'join',
 		'Joins multiple text strings. \nUsage: join delimiter',
 		(inputs, argument) => {
-			const arg = parseInput(argument);
+			const arg = defaultValue(parseInput(argument), '');
 			return [inputs.join(arg)];
 		},
 		'multi'
@@ -326,7 +327,7 @@ export const operators = {
 		'append',
 		'Appends a string to another. \nUsage: append text',
 		(input, argument, inputIndex) => {
-			return input + parseInput(argument);
+			return input + defaultValue(parseInput(argument), '');
 		},
 		'single'
 	).addParameters({
@@ -338,7 +339,7 @@ export const operators = {
 		(input, argument, inputIndex) => {
 			console.log(argument);
 			const args = splitArgs(argument);
-			const times = parseIntArg(args[0], input);
+			const times = parseIntArg(defaultValue(args[0], '2'), input);
 			const delimiter = defaultValue(parseInput(args[1]), '');
 			let out = '';
 			for (let i = 0; i < times; i++) {
@@ -425,7 +426,7 @@ export const operators = {
 		(input, argument, inputIndex) => {
 			const args = splitArgs(argument);
 			const reg = new RegExp(parseInput(args[0]), 'mg');
-			return input.replace(reg, parseInput(args[1]));
+			return input.replace(reg, defaultValue(parseInput(args[1]), ''));
 		},
 		'single'
 	).addParameters({
@@ -481,7 +482,7 @@ export const operators = {
 		'shrink',
 		'Removes characters from the beginning or end of text. \nUsage: shrink amount',
 		(input, argument, inputIndex) => {
-			const arg = parseIntArg(argument, input);
+			const arg = parseIntArg(defaultValue(argument, '-1'), input);
 			if (arg < 0) {
 				return input.substring(0, input.length + arg);
 			} else {
@@ -494,43 +495,37 @@ export const operators = {
 	}),
 	'oneliner': new Operator(
 		'oneliner',
-		'Removes all newlines. \nUsage: oneliner [separate]',
+		'Removes all newlines. \nUsage: oneliner [delimiter]',
 		(input, argument, inputIndex) => {
-			const arg = (argument !== emptyIdentifier);
-			if (arg) {
-				return input.replace(/\n/mg, ' ');
-			} else {
-				return input.replace(/\n/mg, '');
-			}
+			const arg = defaultValue(parseInput(argument), '');
+			return input.replace(/\n/mg, arg);
 		},
 		'single'
 	).addParameters({
-		'[separate]': 'Whether or not to add a space to separate each line'
+		'[delimiter]': 'A string to separate each line'
 	}),
 	'place': new Operator(
 		'place',
-		'Replaces text at a specified index. \nUsage: place position,text',
+		'Replaces text at a specified index. \nUsage: place position,text,[length]',
 		(input, argument, inputIndex) => {
 			const args = splitArgs(argument);
 			const index = parseIntArg(args[0], input);
-			const text = args[1];
-			if (args.length >= 3) {
-				return replaceAt(input, index, parseIntArg(args[2], input), parseInput(text));
-			} else {
-				return replaceAt(input, index, text.length, parseInput(text));
-			}
+			const text = parseInput(args[1]);
+			const length = parseIntArg(defaultValue(args[2], text.length.toString()), input);
+			return replaceAt(input, index, length, parseInput(text));
 		},
 		'single'
 	).addParameters({
 		'position': 'Where to put the text',
-		'text': 'The text to place over the string'
+		'text': 'The text to place over the string',
+		'[length]': 'The number of characters to replace'
 	}),
 	'stretch': new Operator(
 		'stretch',
 		'Repeats letters. \nUsage: stretch amount',
 		(input, argument, inputIndex) => {
 			let out = '';
-			const size = parseIntArg(argument, input);
+			const size = parseIntArg(defaultValue(argument, '1'), input);
 			for (let i = 0; i < input.length; i++) {
 				if (input[i] === ' ') {
 					out = out + input[i];
@@ -650,7 +645,7 @@ export const operators = {
 		'duplicate',
 		'Duplicates a single input into multiple of the same. \nUsage: duplicate times',
 		(input, argument, inputIndex) => {
-			const times = parseIntArg(argument, input);
+			const times = parseIntArg(defaultValue(argument, '1'), input) + 1;
 			let array = [];
 			for (let i = 0; i < times; i++) {
 				array.push(input);
@@ -665,7 +660,7 @@ export const operators = {
 		'split',
 		'Splits a string into multiple values based on a delimiter. \nUsage: split delimiter',
 		(input, argument, inputIndex) => {
-			const split = input.split(parseInput(argument));
+			const split = input.split(defaultValue(parseInput(argument), ' '));
 			return split;
 		},
 		'single'
@@ -674,7 +669,7 @@ export const operators = {
 	}),
 	'erase': new Operator(
 		'erase',
-		'Removes part of a string. \nUsage: erase start,end OR erase start-end',
+		'Removes part of a string. \nUsage: erase start,end OR erase start-end OR erase pos',
 		(input, argument, inputIndex) => {
 			if (argument.includes(',')) {
 				const args = intParseArgs(splitArgs(argument), input);
@@ -692,7 +687,8 @@ export const operators = {
 		'single'
 	).addParameters({
 		'start': 'The position to begin erasing at',
-		'end': 'The position to end erasing. If a hyphen is used to separate the arguments, will use relative positioning'
+		'end': 'The position to end erasing. If a hyphen is used to separate the arguments, will use relative positioning',
+		'pos': 'A word position using w syntax. Will erase the whole word'
 	}),
 	'length': new Operator(
 		'length',
@@ -708,6 +704,26 @@ export const operators = {
 		(input, argument, inputIndex) => {
 			const remove = input.replace(/\s/mg, '');
 			return remove.length.toString();
+		},
+		'single'
+	),
+	'lines': new Operator(
+		'lines',
+		'Counts how many lines are in a string. Usage: lines',
+		(input, argument, inputIndex) => {
+			const split = input.split('\n');
+			return split.length.toString();
+		},
+		'single'
+	),
+	'words': new Operator(
+		'words',
+		'Counts the number of words in a string',
+		(input, argument, inputIndex) => {
+			const split = input.split(/[^a-z0-9\']/img).filter((item) => {
+				return item !== emptyIdentifier && item !== '';
+			});
+			return split.length.toString();
 		},
 		'single'
 	),
@@ -776,7 +792,6 @@ export const operators = {
 		'unshift',
 		'A tool to help with deciphering a caesarian shift. \nUsage: unshift',
 		(input, argument, inputIndex) => {
-			console.log(input);
 			let out = '';
 			for (let i = 0; i < numDecodeMap.length; i++) {
 				out = out + operators['cshift'].fun(input, i.toString()) + '\n';
@@ -797,7 +812,7 @@ export const operators = {
 		'Adds line numbers to text. \nUsage: linenumbers start',
 		(input, argument, inputIndex) => {
 			const split = input.split('\n');
-			const offset = parseIntArg(argument, input);
+			const offset = parseIntArg(defaultValue(argument, '1'), input);
 			const length = split.length + offset;
 			const size = length.toString().length;
 			let out = '';
@@ -821,7 +836,7 @@ export const operators = {
 		(input, argument, inputIndex) => {
 			const args = splitArgs(argument);
 			const length = parseIntArg(args[0], input);
-			const character = parseInput(args[1]);
+			const character = defaultValue(parseInput(args[1]), ' ');
 			if (character.length > 1 || input.length >= length) {
 				return input;
 			} else {
@@ -836,7 +851,7 @@ export const operators = {
 		'single'
 	).addParameters({
 		'length': 'The length to pad to',
-		'character': 'The character used to pad the string to size'
+		'character': 'The character used to pad the string to size. Defaults to space'
 	}),
 	'toss': new Operator(
 		'toss',
@@ -959,7 +974,7 @@ export const operators = {
 		'divide',
 		'Splits a string into multiple values at an interval. \nUsage: divide interval',
 		(input, argument, inputIndex) => {
-			const interval = parseIntArg(argument, input);
+			const interval = parseIntArg(defaultValue(argument, '1'), input);
 			let out = [];
 			for (let i = 0; i < input.length; i += interval) {
 				let endPoint;
