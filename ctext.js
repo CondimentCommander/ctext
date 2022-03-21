@@ -3,7 +3,7 @@ import minimist from 'minimist';
 import fs from 'fs';
 import chalk from 'chalk';
 
-import { emptyIdentifier, intParseArgs, operators, splitArgs, parseInput, operatorAliases, removeIdentifier } from './operators.js'
+import { emptyIdentifier, intParseArgs, operators, splitArgs, parseInput, replaceAlias, removeIdentifier } from './operators.js'
 
 /* Detects if an argument is an operator */
 const isOperator = (argument) => {
@@ -13,15 +13,6 @@ const isOperator = (argument) => {
 	];
 	const parts = argument.split('[');
 	return !(notOps.includes(parts[0])) && Object.keys(operators).includes(parts[0]);
-};
-
-/* Replaces an operator alias with the correct name */
-const replaceAlias = (name) => {
-	if (Object.keys(operatorAliases).includes(name)) {
-		return operatorAliases[name];
-	} else {
-		return name;
-	}
 };
 
 /* Does preprocessing on the command before sending args to minimist */

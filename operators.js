@@ -28,7 +28,7 @@ export const parseInput = (input) => {
 	return text;
 };
 
-export const operatorAliases = {
+const operatorAliases = {
 	'len': 'length',
 	'rep': 'replace',
 	'sub': 'substring',
@@ -45,6 +45,15 @@ export const operatorAliases = {
 	'abbr': 'abbreviate',
 	'put': 'place',
 	'yell': 'stretch'
+};
+
+/* Replaces an operator alias with the correct name */
+export const replaceAlias = (name) => {
+	if (Object.keys(operatorAliases).includes(name)) {
+		return operatorAliases[name];
+	} else {
+		return name;
+	}
 };
 
 /* Converts text to an array of lines */
@@ -99,10 +108,10 @@ export const intParseArgs = (args, input) => {
 /* Obtains a box substring of text */
 const box = (text, indexes) => {
 	const lines = linify(text);
-	const start = {line: indexes[0] - 1, col: indexes[1] - 1};
-	const end = {line: indexes[2] - 1, col: indexes[3] - 1};
+	const start = {row: indexes[0] - 1, col: indexes[1] - 1};
+	const end = {row: indexes[2] - 1, col: indexes[3] - 1};
 	let out = [];
-	for (let i = start.line; i < end.line; i++) {
+	for (let i = start.row; i < end.row; i++) {
 		out.push(lines[i].substring(start.col, end.col));
 	}
 	return out;
@@ -172,6 +181,15 @@ const wrapNum = (value) => {
 	}
 };
 
+/* Sets a default value for an argument */
+const defaultValue = (arg, normal) => {
+	if (arg === undefined || arg === emptyIdentifier || arg === '') {
+		return normal;
+	} else {
+		return arg;
+	}
+};
+
 const normalizeSpacing = (text, delimiter) => {
 	text = text.replace(/(\.|\-|\_| )/mg, delimiter);
 //	text = text.replace(new RegExp(' ', 'mg'), delimiter);
@@ -186,14 +204,12 @@ const normalizeSpacing = (text, delimiter) => {
 
 	let i = 0;
 	for (const match of matches) {
-		if (i !== 0) {
-			const realIndex = match.index + i - 1;
+		if (match.index !== 0) {
+			const realIndex = match.index + i;
 			if (!delimiters.includes(text[realIndex - 1])) {
 				text = replaceAt(text, realIndex, 0, delimiter);
 				i++;
 			}
-		} else {
-			i++;
 		}
 	}
 	text = text.toLowerCase();
@@ -219,6 +235,11 @@ export class Operator {
 		this.desc = desc;
 		this.fun = fun;
 		this.type = type;
+		this.parameters = {};
+	}
+	addParameters(parameters) {
+		this.parameters = parameters;
+		return this;
 	}
 }
 
@@ -226,7 +247,7 @@ export class Operator {
 export const operators = {
 	'reverse': new Operator(
 		'reverse',
-		'Reverses text direction',
+		'Reverses text direction. \nUsage: reverse',
 		(input, argument, inputIndex) => {
 			let out = '';
 			for (let i = input.length - 1; i > -1; i--) {
@@ -238,7 +259,7 @@ export const operators = {
 	),
 	'case': new Operator(
 		'case',
-		'Changes the capitalization of text',
+		'Changes the capitalization of text. \nUsage: case type',
 		(input, argument, inputIndex) => {
 			let out = '';
 			switch (argument) {
@@ -287,32 +308,38 @@ export const operators = {
 			return out;
 		},
 		'single'
-	),
+	).addParameters({
+		'type': 'The capitalization to change to. Can be one of upper, lower, title, snake, dot, dash, constant, camel, or pascal'
+	}),
 	'join': new Operator(
 		'join',
-		'Joins multiple text strings',
+		'Joins multiple text strings. \nUsage: join delimiter',
 		(inputs, argument) => {
 			const arg = parseInput(argument);
 			return [inputs.join(arg)];
 		},
 		'multi'
-	),
+	).addParameters({
+		'delimiter': 'A string to put between each value when they are joined'
+	}),
 	'append': new Operator(
 		'append',
-		'Appends a string to another',
+		'Appends a string to another. \nUsage: append text',
 		(input, argument, inputIndex) => {
 			return input + parseInput(argument);
 		},
 		'single'
-	),
+	).addParameters({
+		'text': 'The text to appened to the end of the string'
+	}),
 	'repeat': new Operator(
 		'repeat',
-		'Repeats a string a certain amount of times',
+		'Repeats a string a certain amount of times. \nUsage: repeat times,[delimiter]',
 		(input, argument, inputIndex) => {
 			console.log(argument);
 			const args = splitArgs(argument);
 			const times = parseIntArg(args[0], input);
-			const delimiter = parseInput(args[1]);
+			const delimiter = defaultValue(parseInput(args[1]), '');
 			let out = '';
 			for (let i = 0; i < times; i++) {
 				if (i === times - 1) {
@@ -324,10 +351,13 @@ export const operators = {
 			return out;
 		},
 		'single'
-	),
+	).addParameters({
+		'times': 'The number of times to repeat the string',
+		'[delimiter]': 'A string to add between each repeated value'
+	}),
 	'substring': new Operator(
 		'substring',
-		'Obtains a substring of text',
+		'Obtains a substring of text. \nUsage: substring start,end OR start-end',
 		(input, argument, inputIndex) => {
 			if (argument.includes(',')) {
 				const args = intParseArgs(splitArgs(argument), input);
@@ -343,10 +373,13 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'start': 'Where to begin the substring',
+		'end': 'Where to end the substring. If the arguments ae separated by a hyphen, will use relative positioning'
+	}),
 	'boxsub': new Operator(
 		'boxsub',
-		'Selects a substring using row and column indexes',
+		'Selects a substring using row and column indexes. \nUsage: boxsub startrow,startcol,endrow,endcol OR startrow-startcol-endrow-endcol',
 		(input, argument, inputIndex) => {
 			if (argument.includes(',')) {
 				const args = intParseArgs(splitArgs(argument), input);
@@ -361,10 +394,15 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'startrow': 'The row to begin the substring at',
+		'startcol': 'The column to begin the substring at',
+		'endrow': 'The row to end the substring at. If a hyphen is used to separate the arguments, will use relative positioning',
+		'endrow': 'The column to end the substring at. If a hyphen is used to separate the arguments, will use relative positioning'
+	}),
 	'at': new Operator(
 		'at',
-		'Obtains the character at a position',
+		'Obtains the character at a position. \nUsage: at position OR at row-col',
 		(input, argument, inputIndex) => {
 			if (input.includes(',')) {
 				const args = splitArgs(argument);
@@ -376,20 +414,27 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'position': 'Where to obtain the character from',
+		'row': 'The row to obtain the character from',
+		'col': 'The column to obtain the character from'
+	}),
 	'replace': new Operator(
 		'replace',
-		'Replaces occurences of a string with another one',
+		'Replaces occurences of a string with another one. \nUsage: replace search,new',
 		(input, argument, inputIndex) => {
 			const args = splitArgs(argument);
 			const reg = new RegExp(parseInput(args[0]), 'mg');
 			return input.replace(reg, parseInput(args[1]));
 		},
 		'single'
-	),
+	).addParameters({
+		'search': 'The string to search for',
+		'new': 'The string to replace the matches with'
+	}),
 	'weave': new Operator(
 		'weave',
-		'Interlaces multiple strings',
+		'Interlaces multiple strings. \nUsage: weave size1,size2...',
 		(inputs, argument) => {
 			const args = splitArgs(argument);
 			let sizes = [];
@@ -429,10 +474,12 @@ export const operators = {
 			return [out];
 		},
 		'multi'
-	),
+	).addParameters({
+		'size#': 'The interval at which to slice the input at the same index'
+	}),
 	'shrink': new Operator(
 		'shrink',
-		'Removes characters from the beginning or end of text',
+		'Removes characters from the beginning or end of text. \nUsage: shrink amount',
 		(input, argument, inputIndex) => {
 			const arg = parseIntArg(argument, input);
 			if (arg < 0) {
@@ -442,12 +489,14 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'amount': 'The number of characters to shrink the string by. Use a negative number in quotes to shrink from the end of the string'
+	}),
 	'oneliner': new Operator(
 		'oneliner',
-		'Removes all newlines',
+		'Removes all newlines. \nUsage: oneliner [separate]',
 		(input, argument, inputIndex) => {
-			const arg = (argument !== 'CTEXT_EMPTY');
+			const arg = (argument !== emptyIdentifier);
 			if (arg) {
 				return input.replace(/\n/mg, ' ');
 			} else {
@@ -455,10 +504,12 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'[separate]': 'Whether or not to add a space to separate each line'
+	}),
 	'place': new Operator(
 		'place',
-		'Replaces text at a specified index',
+		'Replaces text at a specified index. \nUsage: place position,text',
 		(input, argument, inputIndex) => {
 			const args = splitArgs(argument);
 			const index = parseIntArg(args[0], input);
@@ -470,10 +521,13 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'position': 'Where to put the text',
+		'text': 'The text to place over the string'
+	}),
 	'stretch': new Operator(
 		'stretch',
-		'Repeats letters',
+		'Repeats letters. \nUsage: stretch amount',
 		(input, argument, inputIndex) => {
 			let out = '';
 			const size = parseIntArg(argument, input);
@@ -489,10 +543,12 @@ export const operators = {
 			return out;
 		},
 		'single'
-	),
+	).addParameters({
+		'amount': 'How many characters to stretch by'
+	}),
 	'otp': new Operator(
 		'otp',
-		'One time pad cipher',
+		'One time pad cipher. \nUsage: key,mode',
 		(input, argument, inputIndex) => {
 			const args = splitArgs(argument);
 			const key = numEncode(parseInput(args[0]));
@@ -514,33 +570,54 @@ export const operators = {
 			return numDecode(out);
 		},
 		'single'
-	),
+	).addParameters({
+		'key': 'The key to use to encode or decode your text. Should be as long or longer than your text',
+		'mode': 'The mode for the cipher, either encode or decode'
+	}),
 	'help': new Operator(
 		'help',
-		'Gives help info',
+		'Gives help info. \nUsage: help [operator]',
 		(input, argument, inputIndex) => {
-			try {
-				const op = operators[argument];
-				return `${op.name}: ${op.desc}`;
-			} catch (err) {
-				return "Operator does not exist!";
+			if (argument === emptyIdentifier) {
+				let out = [];
+				for (let i = 0; i < Object.keys(operators).length; i++) {
+					out.push(`${Object.keys(operators)[i]} - ${Object.values(operators)[i].desc}`);
+				}
+				console.log(out.join('\n'));
+				return input;
+			} else {
+				const op = operators[replaceAlias(argument)];
+				if (op === undefined) {
+					console.log("Operator does not exist!");
+				} else {
+					console.log(`${op.name}: ${op.desc}`);
+					for (let i = 0; i < Object.keys(op.parameters).length; i++) {
+						console.log(`${Object.keys(op.parameters)[i]}: ${Object.values(op.parameters)[i]}`)
+					}
+				}
+				return input;
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'[operator]': 'The operator to get info about. If left out, will list all avaliable operators'
+	}),
 	'insert': new Operator(
 		'insert',
-		'Inserts text at a position in another string',
+		'Inserts text at a position in another string. \nUsage: insert text,position',
 		(input, argument, inputIndex) => {
 			const args = splitArgs(argument);
 			const pos = parseIntArg(args[1], input);
 			return input.substring(0, pos) + parseInput(args[0]) + input.substring(pos);
 		},
 		'single'
-	),
+	).addParameters({
+		'text': 'The text to insert',
+		'position': 'where to insert the text'
+	}),
 	'squash': new Operator(
 		'squash',
-		'Removes repeated characters',
+		'Removes repeated characters. \nUsage: squash',
 		(input, argument, inputIndex) => {
 			let out = '';
 			for (let i = 0; i < input.length; i++) {
@@ -558,7 +635,7 @@ export const operators = {
 	),
 	'abbreviate': new Operator(
 		'abbreviate',
-		'Abbreviates a series of words',
+		'Abbreviates a series of words. \nUsage: abbreviate',
 		(input, argument, inputIndex) => {
 			const split = input.toUpperCase().split(' ');
 			let out = '';
@@ -571,7 +648,7 @@ export const operators = {
 	),
 	'duplicate': new Operator(
 		'duplicate',
-		'Duplicates a single input into multiple of the same',
+		'Duplicates a single input into multiple of the same. \nUsage: duplicate times',
 		(input, argument, inputIndex) => {
 			const times = parseIntArg(argument, input);
 			let array = [];
@@ -581,19 +658,23 @@ export const operators = {
 			return array;
 		},
 		'single'
-	),
+	).addParameters({
+		'times': 'How many times to duplicate the value'
+	}),
 	'split': new Operator(
 		'split',
-		'Splits a string into multiple values based on a delimiter',
+		'Splits a string into multiple values based on a delimiter. \nUsage: split delimiter',
 		(input, argument, inputIndex) => {
 			const split = input.split(parseInput(argument));
 			return split;
 		},
 		'single'
-	),
+	).addParameters({
+		'delimiter': 'What to split the string on. Will not be included in the final string'
+	}),
 	'erase': new Operator(
 		'erase',
-		'Removes part of a string',
+		'Removes part of a string. \nUsage: erase start,end OR erase start-end',
 		(input, argument, inputIndex) => {
 			if (argument.includes(',')) {
 				const args = intParseArgs(splitArgs(argument), input);
@@ -609,10 +690,13 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'start': 'The position to begin erasing at',
+		'end': 'The position to end erasing. If a hyphen is used to separate the arguments, will use relative positioning'
+	}),
 	'length': new Operator(
 		'length',
-		'Obtains the length of a string, including any whitespace',
+		'Obtains the length of a string, including any whitespace. \nUsage: length',
 		(input, argument, inputIndex) => {
 			return input.length.toString();
 		},
@@ -620,7 +704,7 @@ export const operators = {
 	),
 	'characters': new Operator(
 		'characters',
-		'Counts the number of non-whitespace characters in a string',
+		'Counts the number of non-whitespace characters in a string. \nUsage: characters',
 		(input, argument, inputIndex) => {
 			const remove = input.replace(/\s/mg, '');
 			return remove.length.toString();
@@ -629,7 +713,7 @@ export const operators = {
 	),
 	'filter': new Operator(
 		'filter',
-		'Filters lines that follow a criteria',
+		'Filters lines that follow a criteria. \nUsage: filter mode, criteria',
 		(input, argument, inputIndex) => {
 			const split = input.split('\n');
 			const args = splitArgs(argument);
@@ -646,7 +730,10 @@ export const operators = {
 			return out.join('\n');
 		},
 		'single'
-	),
+	).addParameters({
+		'mode': 'The type of filtering to do. "has" mode will filter lines that contain a string',
+		'criteria': 'The condition to match for'
+	}),
 	'sort': new Operator(
 		'sort',
 		'Sorts lines based on a criteria',
@@ -671,7 +758,7 @@ export const operators = {
 	),
 	'cshift': new Operator(
 		'cshift',
-		'Caesar\'s shift cipher',
+		'Caesar\'s shift cipher. \nUsage: cshift offset',
 		(input, argument, inputIndex) => {
 			const amount = parseIntArg(argument);
 			const encode = numEncode(input);
@@ -682,10 +769,12 @@ export const operators = {
 			return numDecode(out);
 		},
 		'single'
-	),
+	).addParameters({
+		'offset': 'How many characters to shift the letters by'
+	}),
 	'unshift': new Operator(
 		'unshift',
-		'A tool to help with deciphering a caesarian shift',
+		'A tool to help with deciphering a caesarian shift. \nUsage: unshift',
 		(input, argument, inputIndex) => {
 			console.log(input);
 			let out = '';
@@ -705,7 +794,7 @@ export const operators = {
 	),
 	'linenumbers': new Operator(
 		'linenumbers',
-		'Adds line numbers to text',
+		'Adds line numbers to text. \nUsage: linenumbers start',
 		(input, argument, inputIndex) => {
 			const split = input.split('\n');
 			const offset = parseIntArg(argument, input);
@@ -723,10 +812,12 @@ export const operators = {
 			return out;
 		},
 		'single'
-	),
+	).addParameters({
+		'start': 'The number to start on'
+	}),
 	'pad': new Operator(
 		'pad',
-		'Adds characters to a string to make it reach a certain length',
+		'Adds characters to a string to make it reach a certain length. \nUsage: pad length,character',
 		(input, argument, inputIndex) => {
 			const args = splitArgs(argument);
 			const length = parseIntArg(args[0], input);
@@ -743,10 +834,13 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'length': 'The length to pad to',
+		'character': 'The character used to pad the string to size'
+	}),
 	'toss': new Operator(
 		'toss',
-		'Inserts a set of strings at random positions in another string',
+		'Inserts a set of strings at random positions in another string. \nUsage: toss amount,item1,item2...',
 		(input, argument, inputIndex) => {
 			let args = splitArgs(argument);
 			const times = parseIntArg(args[0], input);
@@ -760,10 +854,13 @@ export const operators = {
 			return out;
 		},
 		'single'
-	),
+	).addParameters({
+		'amount': 'The number of times to place items in the string',
+		'item#': 'A string that has a chance to be tossed into the output'
+	}),
 	'numwords': new Operator(
 		'numwords',
-		'Converts a number to an english word equivalent',
+		'Converts a number to an english word equivalent. \nUsage: numwords [individual]',
 		(input, argument, inputIndex) => {
 			const zero = 'zero';
 			const singles = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
@@ -828,10 +925,12 @@ export const operators = {
 			return out.trim();
 		},
 		'single'
-	),
+	).addParameters({
+		'[individual]': 'Whether or not to speak each digit individually instead of together as one number'
+	}),
 	'clear': new Operator(
 		'clear',
-		'Creates an empty string',
+		'Creates an empty string. \nUsage: clear',
 		(input, argument, inputIndex) => {
 			return '';
 		},
@@ -839,7 +938,7 @@ export const operators = {
 	),
 	'in': new Operator(
 		'in',
-		'Adds inputs at a later point in the operations',
+		'Adds inputs at a later point in the operations. \nUsage: in input',
 		(input, argument, inputIndex) => {
 			if (inputIndex === 0) {
 				const args = splitArgs(argument);
@@ -853,10 +952,12 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'input': 'The input to add to the value list'
+	}),
 	'divide': new Operator(
 		'divide',
-		'Splits a string into multiple values at an interval',
+		'Splits a string into multiple values at an interval. \nUsage: divide interval',
 		(input, argument, inputIndex) => {
 			const interval = parseIntArg(argument, input);
 			let out = [];
@@ -872,10 +973,12 @@ export const operators = {
 			return out;
 		},
 		'single'
-	),
+	).addParameters({
+		'interval': 'The interval at which to split the string'
+	}),
 	'crush': new Operator(
 		'crush',
-		'Removes all whitespace characters',
+		'Removes all whitespace characters. \nUsage: crush',
 		(input, argument, inputIndex) => {
 			return input.replace(/\s/mg, '');
 		},
@@ -883,7 +986,7 @@ export const operators = {
 	),
 	'wrap': new Operator(
 		'wrap',
-		'Wraps lines that exceed a certain length',
+		'Wraps lines that exceed a certain length. \nUsage: wrap mode,length',
 		(input, argument, inputIndex) => {
 			const args = splitArgs(argument);
 			const mode = parseInput(args[0]);
@@ -909,10 +1012,13 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'mode': 'The wrapping mode. "block" will remove all previous newlines and create a solid block of text. "cut" will remove any text that exceeds the length',
+		'length': 'The line length to wrap the text at'
+	}),
 	'view': new Operator(
 		'view',
-		'Prints an input prematurely, used for debugging',
+		'Prints an input prematurely, used for debugging. \nUsage: view',
 		(input, argument, inputIndex) => {
 			console.log(input);
 		},
@@ -920,7 +1026,7 @@ export const operators = {
 	),
 	'cull': new Operator(
 		'cull',
-		'removes values that are empty',
+		'removes values that are empty. \nUsage: cull',
 		(input, argument, inputIndex) => {
 			if (input === '' || input === emptyIdentifier) {
 				return removeIdentifier;
