@@ -3,7 +3,8 @@ import minimist from 'minimist';
 import fs from 'fs';
 import chalk from 'chalk';
 
-import { emptyIdentifier, intParseArgs, operators, splitArgs, parseInput, replaceAlias, removeIdentifier } from './operators.js'
+import { operators } from './operators.js'
+import { replaceAlias, parseInput, splitArgs, intParseArgs, emptyIdentifier, removeIdentifier } from './util.js';
 
 /* Detects if an argument is an operator */
 const isOperator = (argument) => {
