@@ -1,6 +1,6 @@
 {
   "name": "ctext-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A command-line tool for processing text",
   "main": "ctext.js",
   "scripts": {
@@ -20,5 +20,5 @@
     "chalk": "^5.0.1",
     "minimist": "^1.2.5"
   },
-  "type":"module"
+  "type": "module"
 }
