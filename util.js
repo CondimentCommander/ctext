@@ -6,9 +6,24 @@ export const upperAlphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 
 export const emptyIdentifier = 'CTEXT_EMPTY';
 export const removeIdentifier = 'CTEXT_REMOVE';
 
+const wordCharacter = 'w';
+const variableCharacter = '?';
+
 /* Splits comma-separated arguments into an array */
-export const splitArgs = (args) => {
-	return args.split(',');
+export const splitArgs = (args, delimiter = ',') => {
+	const quoterx = /(\"|\')/;
+	let out = [];
+	let currentString = '';
+	for (let i = 0; i < args.length; i++) {
+		if (args[i] === delimiter && args[i - 1] !== '\\') {
+			out.push(currentString);
+			currentString = '';
+		} else if (!(currentString === '' && args[i] === ' ')) {
+			currentString = currentString + args[i];
+		}
+	}
+	out.push(currentString);
+	return out;
 };
 
 /* Parses an input and retrieves contents of a file if specified */
@@ -24,7 +39,7 @@ export const parseInput = (input) => {
 		}
 	} else {
 		text = text.replace(/\\n/mg, '\n');
-		if (text[0] === '?') {
+		if (text[0] === variableCharacter) {
 			text = variables[text.substring(1)];
 		}
 		if (text[0] === '\\') {
@@ -98,7 +113,10 @@ export const specificIndexOf = (string, regex, pos) => {
 /* Parses a single integer argument */
 export const parseIntArg = (argument, input) => {
 	if (argument === undefined || argument === emptyIdentifier) return 0; 
-	if (argument[0] === 'w') {
+	if (argument[0] === variableCharacter) {
+		return variables[argument.substring(1)];
+	}
+	if (argument[0] === wordCharacter) {
 		const wordPos = parseInt(argument.substring(1));
 		let index = specificIndexOf(input, /\s/mg, wordPos - 1);
 		if (index === undefined) index = 0;

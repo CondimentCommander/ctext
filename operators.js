@@ -340,7 +340,7 @@ export const operators = {
 			} else {
 				const op = operators[util.replaceAlias(argument)];
 				if (op === undefined) {
-					console.log("util.Operator does not exist!");
+					console.log('Operator does not exist!');
 				} else {
 					console.log(`${op.name}: ${op.desc}`);
 					for (let i = 0; i < Object.keys(op.parameters).length; i++) {
@@ -734,12 +734,7 @@ export const operators = {
 			const interval = util.parseIntArg(util.defaultValue(argument, '1'), input);
 			let out = [];
 			for (let i = 0; i < input.length; i += interval) {
-				let endPoint;
-				if (i + interval > input.length) {
-					endPoint = input.length;
-				} else {
-					endPoint = i + interval;
-				}
+				const endPoint = util.limitValue(i + interval, 0, input.length);
 				out.push(input.substring(i, endPoint));
 			}
 			return out;
@@ -897,5 +892,13 @@ export const operators = {
 		'[mode]': 'The method to use for scrambling',
 		'[factor]': 'To what degree to apply the scramble',
 		'[words]': 'Whether or not to only scramble letters'
-	})
+	}),
+	'end': new util.Operator(
+		'end',
+		'Removes a value from the list. \nUsage: end',
+		(input, argument, inputIndex) => {
+			return util.removeIdentifier;
+		},
+		'single'
+	)
 }
