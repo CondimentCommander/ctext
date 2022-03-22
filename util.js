@@ -13,8 +13,8 @@ export const splitArgs = (args) => {
 
 /* Parses an input and retrieves contents of a file if specified */
 export const parseInput = (input) => {
+	if (input === undefined || input === emptyIdentifier) return '';
 	let text = input.toString();
-	if (text === undefined || text === emptyIdentifier) return '';
 	text = text.replace(/\\e/img, '');
 	if (fs.existsSync(input)) {
 		try {
@@ -24,11 +24,20 @@ export const parseInput = (input) => {
 		}
 	} else {
 		text = text.replace(/\\n/mg, '\n');
-		if (text[0] === "\\") {
+		if (text[0] === '?') {
+			text = variables[text.substring(1)];
+		}
+		if (text[0] === '\\') {
 			text = text.substring(1);
 		}
 	}
 	return text;
+};
+
+export const variables = {};
+
+export const setVar = (name, value) => {
+	variables[name] = value;
 };
 
 const operatorAliases = {
@@ -193,6 +202,7 @@ export const defaultValue = (arg, normal) => {
 	}
 };
 
+/* Normalizes spacing for changing case */
 export const normalizeSpacing = (text, delimiter) => {
 	text = text.replace(/(\.|\-|\_| )/mg, delimiter);
 	const matches = text.matchAll(/[A-Z]/mg);
@@ -218,6 +228,7 @@ export const normalizeSpacing = (text, delimiter) => {
 	return text;
 };
 
+/* Capitalizes text in title case */
 export const caseTitle = (text) => {
 	text = text.toLowerCase();
 	const regex = /\W/mg;
@@ -244,3 +255,21 @@ export class Operator {
 		return this;
 	}
 }
+
+/* Writes data to a text output file */
+export const writeOutput = async (output, text) => {
+	if (fs.existsSync(output)) {
+		fs.writeFile(output, text, 'utf-8', () => {});
+	}
+};
+
+/* Limits a value between two points */
+export const limitValue = (value, min, max) => {
+	if (value < min) {
+		return min;
+	} else if (value > max) {
+		return max;
+	} else {
+		return value;
+	}
+};

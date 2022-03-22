@@ -4,7 +4,7 @@ import fs from 'fs';
 import chalk from 'chalk';
 
 import { operators } from './operators.js'
-import { replaceAlias, parseInput, splitArgs, intParseArgs, emptyIdentifier, removeIdentifier } from './util.js';
+import { replaceAlias, parseInput, splitArgs, intParseArgs, emptyIdentifier, removeIdentifier, writeOutput } from './util.js';
 
 /* Detects if an argument is an operator */
 const isOperator = (argument) => {
@@ -56,13 +56,6 @@ const resolveOutputs = (outputs) => {
 	outputs = forceArray(outputs);
 	outputs.forEach(resolve);
 	return outputs;
-};
-
-/* Writes data to a text output file */
-const writeOutput = async (output, text) => {
-	if (fs.existsSync(output)) {
-		fs.writeFile(output, text, 'utf-8', () => {});
-	}
 };
 
 /* Takes a value and encapsulates it in an array if it isn't one already */

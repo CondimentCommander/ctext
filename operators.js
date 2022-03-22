@@ -1,4 +1,5 @@
 import * as util from './util.js';
+import fs from 'fs';
 
 /* The list of operators available */
 export const operators = {
@@ -337,7 +338,7 @@ export const operators = {
 				console.log(out.join('\n'));
 				return input;
 			} else {
-				const op = operators[replaceAlias(argument)];
+				const op = operators[util.replaceAlias(argument)];
 				if (op === undefined) {
 					console.log("util.Operator does not exist!");
 				} else {
@@ -709,7 +710,7 @@ export const operators = {
 	),
 	'in': new util.Operator(
 		'in',
-		'Adds inputs at a later point in the operations. \nUsage: in input',
+		'Adds inputs at a later point in the operations. \nUsage: in input1,input2...',
 		(input, argument, inputIndex) => {
 			if (inputIndex === 0) {
 				const args = util.splitArgs(argument);
@@ -724,7 +725,7 @@ export const operators = {
 		},
 		'single'
 	).addParameters({
-		'input': 'The input to add to the value list'
+		'input#': 'An input to add to the value list'
 	}),
 	'divide': new util.Operator(
 		'divide',
@@ -806,5 +807,95 @@ export const operators = {
 			}
 		},
 		'single'
-	)
+	),
+	'dummy': new util.Operator(
+		'dummy',
+		'Generates dummy text. \nUsage: dummy mode',
+		(input, argument, inputIndex) => {
+			const args = util.splitArgs(argument);
+			const mode = util.defaultValue(util.parseInput(args[0]), 'lorem');
+			const words = util.parseIntArg(util.defaultValue(args[1], '15'), input);
+
+			const text = {
+				'lorem': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla semper odio nunc, in gravida mauris efficitur at. Pellentesque faucibus ligula et lacinia accumsan. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Ut accumsan nisi ut felis volutpat lacinia. Integer tristique nibh nulla, a congue nulla pellentesque in. Vestibulum mattis vulputate velit, ac hendrerit tellus malesuada in. Maecenas id eros sollicitudin nisi ultrices luctus id eu nibh. Curabitur hendrerit ultricies libero, dictum imperdiet eros sodales id. Suspendisse id consectetur metus.truetrueNulla facilisi. Aliquam erat volutpat. Quisque viverra leo eget risus vehicula, id pharetra dolor fringilla. Phasellus tempus lorem vel ornare vestibulum. Proin non metus odio. Aliquam pellentesque convallis varius. Cras cursus diam id orci euismod lobortis.truetrueNam metus leo, auctor vel odio ac, iaculis tempor ante. Aliquam id mauris quis dolor vestibulum feugiat. Etiam ullamcorper est vel nibh gravida viverra. Morbi scelerisque, lacus dictum molestie vestibulum, dolor ante fringilla quam, sed vehicula magna felis non risus. Sed in eros malesuada, imperdiet dui non, iaculis quam. In quis nisl a magna gravida venenatis non ac turpis. Vestibulum et sapien elit. Phasellus viverra odio imperdiet dolor gravida feugiat. Donec sit amet magna at ante sagittis semper.truetrueIn tristique nunc felis, in posuere magna aliquet eu. Cras hendrerit efficitur quam nec vestibulum. Ut metus nisl, malesuada non laoreet eget, mattis quis nisi. Sed vehicula turpis in eros efficitur, vel euismod mi commodo. Praesent mollis nibh consequat elementum sagittis. Morbi quis elit leo. Maecenas dictum hendrerit finibus. Pellentesque ut ultricies mi. Ut et aliquam libero, eu rutrum lorem. Vestibulum ut ante lorem. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Duis elementum interdum nulla feugiat tempus.truetrueDonec lectus lorem, auctor vitae risus in, semper lacinia tortor. Phasellus fermentum magna nec mauris varius, at ullamcorper magna euismod. Vestibulum vitae libero vestibulum, dignissim lorem at, congue magna. Donec blandit rhoncus placerat. Donec metus mi, condimentum vel varius a, sodales quis libero. Suspendisse metus nulla, congue quis lacus nec, ullamcorper scelerisque libero. Ut auctor molestie metus, dictum venenatis massa eleifend a.'
+			};
+			return text[mode];
+		},
+		'single'
+	).addParameters({
+		'mode': 'The text to generate'
+	}),
+	'content': new util.Operator(
+		'content',
+		'Removes all non-word characters. \nUsage: content',
+		(input, argument, inputIndex) => {
+			return input.replace(/\W/img, '');
+		},
+		'single'
+	),
+	'out': new util.Operator(
+		'out',
+		'Sends text to a file at an earlier point. \nUsage: out path1,path2...',
+		(input, argument, inputIndex) => {
+			const args = util.splitArgs(argument);
+			args.forEach((arg) => {
+				util.writeOutput(arg, input)
+			});
+			return input;
+		},
+		'single'
+	).addParameters({
+		'path#': 'The file path to send data to'
+	}),
+	'set': new util.Operator(
+		'set',
+		'Sets a variable to the input. \nUsage: set name',
+		(input, argument, inputIndex) => {
+			util.setVar(util.defaultValue(util.parseInput(argument), 'temp'), input);
+			return input;
+		},
+		'single'
+	).addParameters({
+		'name': 'The name of the variable to set'
+	}),
+	'scramble': new util.Operator(
+		'scramble',
+		'Rearranges characters in a string. \nUsage: scramble [mode],[factor],[words]',
+		(input, argument, inputIndex) => {
+			const args = util.splitArgs(argument);
+			const mode = util.defaultValue(util.parseInput(args[0]), 'shuffle');
+			const fac = util.parseIntArg(util.defaultValue(args[1], '2'), input);
+			const words = util.defaultValue(util.parseInput(args[2]), 'true') === 'true';
+			let out = [];
+			for (let i = 0; i < input.length; i++) {
+				out.push(input[i]);
+			}
+			const swap = (a, b) => {
+				return [b, a];
+			};
+
+			switch (mode) {
+				case 'shuffle': {
+					for (let i = 0; i < out.length; i++) {
+						const direction = Math.round(Math.random()) * 2 - 1; //Normalize direction to -1 or 1;
+						const distance = util.limitValue(Math.floor(Math.random() * fac * direction) + i, 0, out.length - 1); //Get the position of the swap
+						/* Swap the values */
+						const wordrx = /\w/;
+						if (!words || (wordrx.test(out[i]) && wordrx.test(out[distance]))) {
+							const positions = swap(out[i], out[distance]);
+							out[i] = positions[0];
+							out[distance] = positions[1];
+						}
+					}
+					break;
+				}
+			}
+			return out.join('');
+		},
+		'single'
+	).addParameters({
+		'[mode]': 'The method to use for scrambling',
+		'[factor]': 'To what degree to apply the scramble',
+		'[words]': 'Whether or not to only scramble letters'
+	})
 }
