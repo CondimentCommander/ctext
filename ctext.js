@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 import minimist from 'minimist';
-import fs from 'fs';
 import chalk from 'chalk';
 
 import { operators } from './operators.js'
-import { replaceAlias, parseInput, splitArgs, intParseArgs, emptyIdentifier, removeIdentifier, writeOutput } from './util.js';
+import * as util from './util.js';
 
 /* Detects if an argument is an operator */
 const isOperator = (argument) => {
@@ -24,20 +23,20 @@ const processArgs = () => {
 		const item = slice[i];
 		const split = item.split('[');
 		const itemName = split[0].substring(split[0].lastIndexOf('-') + 1, split[0].length);
-		if (isOperator(replaceAlias(itemName)) && split[0][0] === '-') {
+		if (isOperator(util.replaceAlias(itemName)) && split[0][0] === '-') {
 			if (split.length > 1) {
-				args.push('--' + replaceAlias(itemName) + '[' + split[1]);
+				args.push('--' + util.replaceAlias(itemName) + '[' + split[1]);
 			} else {
-				args.push('--' + replaceAlias(itemName));
+				args.push('--' + util.replaceAlias(itemName));
 			}
 			const nextItem = slice[i + 1];
 			if (nextItem === undefined) {
-				args.push(emptyIdentifier);
+				args.push(util.emptyIdentifier);
 			} else {
 				const nextSplit = nextItem.split('[');
 				const nextName = nextSplit[0].substring(nextSplit[0].lastIndexOf('-') + 1, nextSplit[0].length);
-				if (isOperator(replaceAlias(nextName)) && nextSplit[0][0] === '-') {
-					args.push(emptyIdentifier);
+				if (isOperator(util.replaceAlias(nextName)) && nextSplit[0][0] === '-') {
+					args.push(util.emptyIdentifier);
 				}
 			}
 		} else {
@@ -53,18 +52,9 @@ const resolveOutputs = (outputs) => {
 	const resolve = (item) => {
 		
 	};
-	outputs = forceArray(outputs);
+	outputs = util.forceArray(outputs);
 	outputs.forEach(resolve);
 	return outputs;
-};
-
-/* Takes a value and encapsulates it in an array if it isn't one already */
-const forceArray = (value) => {
-	if (Array.isArray(value)) {
-		return value;
-	} else {
-		return [value];
-	}
 };
 
 /* Adds chalk styling */
@@ -82,7 +72,7 @@ const evalInput = async (input, operator, argument) => {
 /* Main Function */
 const main = (argv) => {
 	//console.log(argv);
-	let inputs = argv._.map((input) => {return parseInput(input)});
+	let inputs = argv._.map((input) => {return util.parseInput(input)});
 	if (inputs.length === 0) inputs = [''];
 	let outputs = resolveOutputs(argv.o);
 
@@ -92,11 +82,11 @@ const main = (argv) => {
 		const parts = item.split('[');
 		let selection = [];
 		if (parts.length >= 2) {
-			selection = intParseArgs(splitArgs(parts[1].substring(0, parts[1].length)));
+			selection = util.intParseArgs(util.splitArgs(parts[1].substring(0, parts[1].length)));
 		}
 		const name = parts[0];
 		if (isOperator(item)) {
-			let argument = forceArray(argv[item]);
+			let argument = util.forceArray(argv[item]);
 			argument.forEach((arg) => {
 				const object = {
 					'name': name,
@@ -118,7 +108,7 @@ const main = (argv) => {
 			for (let i = 0; i < lastEvaluation.length; i++) {
 				if (operatorArgument.selection.length === 0 || operatorArgument.selection.includes(i)) {
 					let result = op.fun(lastEvaluation[i], operatorArgument.arg, i);
-					if (result !== removeIdentifier) {
+					if (result !== util.removeIdentifier) {
 						if (Array.isArray(result)) {
 							evaluated.push(result.shift());
 							result.forEach((value) => {
@@ -167,10 +157,10 @@ const main = (argv) => {
 		try {
 			if (outputs.length > 0) {
 				if (outputs.length === evaluated.length) {
-					writeOutput(outputs[i], value);
+					util.writeOutput(outputs[i], value);
 				} else if (outputs.length <= evaluated.length && i === 0) {
 					outputs.forEach((out) => {
-						writeOutput(out, evaluated[0]);
+						util.writeOutput(out, evaluated[0]);
 					});
 				} else {
 					console.log(chalk.red('You have more values than outputs! No outputs were written'));

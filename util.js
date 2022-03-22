@@ -147,6 +147,15 @@ export const box = (text, indexes) => {
 	return out;
 };
 
+/* Takes a value and encapsulates it in an array if it isn't one already */
+export const forceArray = (value) => {
+	if (Array.isArray(value)) {
+		return value;
+	} else {
+		return [value];
+	}
+};
+
 /* Replaces text at a position in a string */
 export const replaceAt = (string, pos, size, text) => {
 	return string.substring(0, pos) + text + string.substring(pos + size);

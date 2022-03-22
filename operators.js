@@ -121,7 +121,7 @@ export const operators = {
 				const args = util.intParseArgs(util.splitArgs(argument), input);
 				return input.substring(args[0], args[1]);
 			} else if (argument.includes('-')) {
-				const args = util.intParseArgs(argument.split('-'), input);
+				const args = util.intParseArgs(util.splitArgs(argument, '-'), input);
 				return input.substring(args[0], args[0] + args[1]);
 			} else if (argument !== util.emptyIdentifier) {
 				const arg = util.parseIntArg(argument, input);
@@ -144,7 +144,7 @@ export const operators = {
 				const selection = util.box(input, [args[0], args[1], args[2] + 1, args[3] + 1]);
 				return util.textify(selection);
 			} else if (argument.includes('-')) {
-				const args = util.intParseArgs(argument.split('-'), input);
+				const args = util.intParseArgs(util.splitArgs(argument, '-'), input);
 				const selection = util.box(input, [args[0], args[1], args[0] + args[2], args[1] + args[3]]);
 				return util.textify(selection);
 			} else {
@@ -163,9 +163,8 @@ export const operators = {
 		'Obtains the character at a position. \nUsage: at position OR at row-col',
 		(input, argument, inputIndex) => {
 			if (input.includes(',')) {
-				const args = util.splitArgs(argument);
-				args = util.intParseArgs(args, input);
-				const lines = linify(input);
+				const args = util.intParseArgs(util.splitArgs(argument), input);
+				const lines = util.linify(input);
 				return lines[args[0] - 1][args[1] - 1];
 			} else {
 				return input[util.parseIntArg(argument, input)];
@@ -451,7 +450,14 @@ export const operators = {
 		'length',
 		'Obtains the length of a string, including any whitespace. \nUsage: length',
 		(input, argument, inputIndex) => {
-			return input.length.toString();
+			const arg = util.parseInput(argument);
+			const length = input.length.toString();
+			if (arg === '') {
+				return length;
+			} else {
+				util.setVar(arg, length);
+				return input;
+			}
 		},
 		'single'
 	),
@@ -459,8 +465,15 @@ export const operators = {
 		'characters',
 		'Counts the number of non-whitespace characters in a string. \nUsage: characters',
 		(input, argument, inputIndex) => {
+			const arg = util.parseInput(argument);
 			const remove = input.replace(/\s/mg, '');
-			return remove.length.toString();
+			const length = remove.length.toString();
+			if (arg === '') {
+				return length;
+			} else {
+				util.setVar(arg, length);
+				return input;
+			}
 		},
 		'single'
 	),
@@ -468,8 +481,15 @@ export const operators = {
 		'lines',
 		'Counts how many lines are in a string. Usage: lines',
 		(input, argument, inputIndex) => {
+			const arg = util.parseInput(argument);
 			const split = input.split('\n');
-			return split.length.toString();
+			const length = split.length.toString();
+			if (arg === '') {
+				return length;
+			} else {
+				util.setVar(arg, length);
+				return input;
+			}
 		},
 		'single'
 	),
@@ -477,10 +497,17 @@ export const operators = {
 		'words',
 		'Counts the number of words in a string',
 		(input, argument, inputIndex) => {
+			const arg = util.parseInput(argument);
 			const split = input.split(/[^a-z0-9\']/img).filter((item) => {
 				return item !== util.emptyIdentifier && item !== '';
 			});
-			return split.length.toString();
+			const length = split.length.toString();
+			if (arg === '') {
+				return length;
+			} else {
+				util.setVar(arg, length);
+				return input;
+			}
 		},
 		'single'
 	),
