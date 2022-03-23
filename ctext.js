@@ -35,7 +35,7 @@ const processArgs = () => {
 			} else {
 				const nextSplit = nextItem.split('[');
 				const nextName = nextSplit[0].substring(nextSplit[0].lastIndexOf('-') + 1, nextSplit[0].length);
-				if (isOperator(util.replaceAlias(nextName)) && nextSplit[0][0] === '-') {
+				if (nextSplit[0][0] === '-') {
 					args.push(util.emptyIdentifier);
 				}
 			}
@@ -71,6 +71,7 @@ const evalInput = async (input, operator, argument) => {
 
 /* Main Function */
 const main = (argv) => {
+	const startTime = Date.now();
 	//console.log(argv);
 	let inputs = argv._.map((input) => {return util.parseInput(input)});
 	if (inputs.length === 0) inputs = [''];
@@ -170,6 +171,9 @@ const main = (argv) => {
 			console.error(err);
 		}
 	});
+	if (argv.p === true) {
+		console.log(Date.now() - startTime);
+	}
 };
 
 main(processArgs());

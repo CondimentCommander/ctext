@@ -50,6 +50,13 @@ export const parseInput = (input) => {
 	return text;
 };
 
+export const parseArgs = (args, prev, delimiter = ',') => {
+	if (prev !== undefined && prev !== []) {
+		return prev;
+	}
+	const split = splitArgs(args, delimiter);
+};
+
 export const variables = {};
 
 export const setVar = (name, value) => {
