@@ -19,6 +19,7 @@ export const operators = {
 		'Changes the capitalization of text. \nUsage: case type',
 		(input, argument, inputIndex) => {
 			let out = '';
+			if (argument === util.emptyIdentifier) return input;
 			switch (argument) {
 				case 'upper': {
 					out = input.toUpperCase();
@@ -90,14 +91,14 @@ export const operators = {
 	}),
 	'join': new util.Operator(
 		'join',
-		'Joins multiple text strings. \nUsage: join delimiter',
+		'Joins multiple text strings. \nUsage: join [delimiter]',
 		(inputs, argument) => {
 			const arg = util.defaultValue(util.parseInput(argument), '');
 			return [inputs.join(arg)];
 		},
 		'multi'
 	).addParameters({
-		'delimiter': 'A string to put between each value when they are joined'
+		'[delimiter]': 'A string to put between each value when they are joined'
 	}),
 	'append': new util.Operator(
 		'append',
@@ -111,7 +112,7 @@ export const operators = {
 	}),
 	'repeat': new util.Operator(
 		'repeat',
-		'Repeats a string a certain amount of times. \nUsage: repeat times,[delimiter]',
+		'Repeats a string a certain amount of times. \nUsage: repeat [times],[delimiter]',
 		(input, argument, inputIndex) => {
 			console.log(argument);
 			const args = util.splitArgs(argument);
@@ -129,7 +130,7 @@ export const operators = {
 		},
 		'single'
 	).addParameters({
-		'times': 'The number of times to repeat the string',
+		'[times]': 'The number of times to repeat the string',
 		'[delimiter]': 'A string to add between each repeated value'
 	}),
 	'substring': new util.Operator(
@@ -251,11 +252,11 @@ export const operators = {
 		},
 		'multi'
 	).addParameters({
-		'size#': 'The interval at which to slice the input at the same index'
+		'size#': 'The interval at which to slice the input at the same index. Set only one to set the size for all of them'
 	}),
 	'shrink': new util.Operator(
 		'shrink',
-		'Removes characters from the beginning or end of text. \nUsage: shrink amount',
+		'Removes characters from the beginning or end of text. \nUsage: shrink [amount]',
 		(input, argument, inputIndex) => {
 			const arg = util.parseIntArg(util.defaultValue(argument, '-1'), input);
 			if (arg < 0) {
@@ -266,7 +267,7 @@ export const operators = {
 		},
 		'single'
 	).addParameters({
-		'amount': 'The number of characters to shrink the string by. Use a negative number in quotes to shrink from the end of the string'
+		'[amount]': 'The number of characters to shrink the string by. Use a negative number in quotes to shrink from the end of the string'
 	}),
 	'oneliner': new util.Operator(
 		'oneliner',
@@ -297,7 +298,7 @@ export const operators = {
 	}),
 	'stretch': new util.Operator(
 		'stretch',
-		'Repeats letters. \nUsage: stretch amount',
+		'Repeats letters. \nUsage: stretch [amount]',
 		(input, argument, inputIndex) => {
 			let out = '';
 			const size = util.parseIntArg(util.defaultValue(argument, '1'), input);
@@ -314,7 +315,7 @@ export const operators = {
 		},
 		'single'
 	).addParameters({
-		'amount': 'How many characters to stretch by'
+		'[amount]': 'How many characters to stretch by'
 	}),
 	'otp': new util.Operator(
 		'otp',
@@ -418,7 +419,7 @@ export const operators = {
 	),
 	'duplicate': new util.Operator(
 		'duplicate',
-		'Duplicates a single input into multiple of the same. \nUsage: duplicate times',
+		'Duplicates a single input into multiple of the same. \nUsage: duplicate [times]',
 		(input, argument, inputIndex) => {
 			const times = util.parseIntArg(util.defaultValue(argument, '1'), input) + 1;
 			let array = [];
@@ -429,18 +430,18 @@ export const operators = {
 		},
 		'single'
 	).addParameters({
-		'times': 'How many times to duplicate the value'
+		'[times]': 'How many times to duplicate the value'
 	}),
 	'split': new util.Operator(
 		'split',
-		'Splits a string into multiple values based on a delimiter. \nUsage: split delimiter',
+		'Splits a string into multiple values based on a delimiter. \nUsage: split [delimiter]',
 		(input, argument, inputIndex) => {
 			const split = input.split(util.defaultValue(util.parseInput(argument), ' '));
 			return split;
 		},
 		'single'
 	).addParameters({
-		'delimiter': 'What to split the string on. Will not be included in the final string'
+		'[delimiter]': 'What to split the string on. Will not be included in the final string. Defaults to space'
 	}),
 	'erase': new util.Operator(
 		'erase',
@@ -467,7 +468,7 @@ export const operators = {
 	}),
 	'length': new util.Operator(
 		'length',
-		'Obtains the length of a string, including any whitespace. \nUsage: length',
+		'Obtains the length of a string, including any whitespace. \nUsage: length [var]',
 		(input, argument, inputIndex) => {
 			const arg = util.parseInput(argument);
 			const length = input.length.toString();
@@ -479,10 +480,12 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'[var]': 'An optional variable to store the value to'
+	}),
 	'characters': new util.Operator(
 		'characters',
-		'Counts the number of non-whitespace characters in a string. \nUsage: characters',
+		'Counts the number of non-whitespace characters in a string. \nUsage: characters [var]',
 		(input, argument, inputIndex) => {
 			const arg = util.parseInput(argument);
 			const remove = input.replace(/\s/mg, '');
@@ -495,10 +498,12 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'[var]': 'An optional variable to store the value to'
+	}),
 	'lines': new util.Operator(
 		'lines',
-		'Counts how many lines are in a string. Usage: lines',
+		'Counts how many lines are in a string. \nUsage: lines [var]',
 		(input, argument, inputIndex) => {
 			const arg = util.parseInput(argument);
 			const split = input.split('\n');
@@ -511,10 +516,12 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'[var]': 'An optional variable to store the value to'
+	}),
 	'words': new util.Operator(
 		'words',
-		'Counts the number of words in a string',
+		'Counts the number of words in a string. \nUsage: words [var]',
 		(input, argument, inputIndex) => {
 			const arg = util.parseInput(argument);
 			const split = input.split(/[^a-z0-9\']/img).filter((item) => {
@@ -529,10 +536,12 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'[var]': 'An optional variable to store the value to'
+	}),
 	'filter': new util.Operator(
 		'filter',
-		'Filters lines that follow a criteria. \nUsage: filter mode, criteria',
+		'Filters lines that follow a criteria. \nUsage: filter mode,criteria',
 		(input, argument, inputIndex) => {
 			const split = input.split('\n');
 			const args = util.splitArgs(argument);
@@ -612,7 +621,7 @@ export const operators = {
 	),
 	'linenumbers': new util.Operator(
 		'linenumbers',
-		'Adds line numbers to text. \nUsage: linenumbers start',
+		'Adds line numbers to text. \nUsage: linenumbers [start]',
 		(input, argument, inputIndex) => {
 			const split = input.split('\n');
 			const offset = util.parseIntArg(util.defaultValue(argument, '1'), input);
@@ -631,11 +640,11 @@ export const operators = {
 		},
 		'single'
 	).addParameters({
-		'start': 'The number to start on'
+		'[start]': 'The number to start on'
 	}),
 	'pad': new util.Operator(
 		'pad',
-		'Adds characters to a string to make it reach a certain length. \nUsage: pad length,character',
+		'Adds characters to a string to make it reach a certain length. \nUsage: pad length,[character]',
 		(input, argument, inputIndex) => {
 			const args = util.splitArgs(argument);
 			const length = util.parseIntArg(args[0], input);
@@ -654,7 +663,7 @@ export const operators = {
 		'single'
 	).addParameters({
 		'length': 'The length to pad to',
-		'character': 'The character used to pad the string to size. Defaults to space'
+		'[character]': 'The character used to pad the string to size. Defaults to space'
 	}),
 	'toss': new util.Operator(
 		'toss',
@@ -775,7 +784,7 @@ export const operators = {
 	}),
 	'divide': new util.Operator(
 		'divide',
-		'Splits a string into multiple values at an interval. \nUsage: divide interval',
+		'Splits a string into multiple values at an interval. \nUsage: divide [interval]',
 		(input, argument, inputIndex) => {
 			const interval = util.parseIntArg(util.defaultValue(argument, '1'), input);
 			let out = [];
@@ -787,7 +796,7 @@ export const operators = {
 		},
 		'single'
 	).addParameters({
-		'interval': 'The interval at which to split the string'
+		'[interval]': 'The interval at which to split the string'
 	}),
 	'crush': new util.Operator(
 		'crush',
@@ -899,14 +908,14 @@ export const operators = {
 	}),
 	'set': new util.Operator(
 		'set',
-		'Sets a variable to the input. \nUsage: set name',
+		'Sets a variable to the input. \nUsage: set [name]',
 		(input, argument, inputIndex) => {
 			util.setVar(util.defaultValue(util.parseInput(argument), 'temp'), input);
 			return input;
 		},
 		'single'
 	).addParameters({
-		'name': 'The name of the variable to set'
+		'[name]': 'The name of the variable to set. Defaults to temp'
 	}),
 	'scramble': new util.Operator(
 		'scramble',

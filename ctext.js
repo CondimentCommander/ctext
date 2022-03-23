@@ -172,7 +172,7 @@ const main = (argv) => {
 		}
 	});
 	if (argv.p === true) {
-		console.log(Date.now() - startTime);
+		console.log(`Operations took ${Date.now() - startTime} milliseconds`);
 	}
 	process.exit(0);
 };

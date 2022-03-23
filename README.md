@@ -11,8 +11,11 @@ Two types of operators exist, single and multi. Single operators will run indivi
 
 You can use selections by adding a comma-separated list of indexes at the end of an operator name, like `--join[0,1]`. This will mean that the operator will only apply itself to certain values. 
 
+You can set variables with `--set`. Use a question mark and then a variable name in arguments to read a variable's value. 
+
 Use the `-o` flag to output values to text files.
 
 Multiple other flags exist:
 * `-f`: Forces the display of text to the console even if it exceeds the length limit
 * `-h`: Stops text from being displayed in the console
+* `-p`: Shows how long the operations took
