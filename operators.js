@@ -62,6 +62,26 @@ export const operators = {
 					out = out.replace(/ /mg, '');
 					break;
 				}
+				case 'reverse': {
+					out = input;
+					for (let i = 0; i < out.length; i++) {
+						if (/\w/.test(out[i])) {
+							out = util.replaceAt(out, i, 1, util.caseReverseMap[out[i]]);
+						}
+					}
+					break;
+				}
+				case 'mock': {
+					out = input;
+					for (let i = 0; i < out.length; i++) {
+						if (i % 2 === 0) {
+							out = util.replaceAt(out, i, 1, out[i].toLowerCase());
+						} else {
+							out = util.replaceAt(out, i, 1, out[i].toUpperCase());
+						}
+					}
+					break;
+				}
 			}
 			return out;
 		},
@@ -820,8 +840,12 @@ export const operators = {
 	),
 	'cull': new util.Operator(
 		'cull',
-		'removes values that are empty. \nUsage: cull',
+		'removes values that are empty. \nUsage: cull [string]',
 		(input, argument, inputIndex) => {
+			const arg = util.defaultValue(util.parseInput(argument), util.emptyIdentifier);
+			if (arg !== util.emptyIdentifier && input === arg) {
+				return util.removeIdentifier;
+			}
 			if (input === '' || input === util.emptyIdentifier) {
 				return util.removeIdentifier;
 			} else {
@@ -829,10 +853,12 @@ export const operators = {
 			}
 		},
 		'single'
-	),
+	).addParameters({
+		'[string]': 'An optional string to check for instead'
+	}),
 	'dummy': new util.Operator(
 		'dummy',
-		'Generates dummy text. \nUsage: dummy mode',
+		'Generates dummy text. \nUsage: dummy [mode],[words]',
 		(input, argument, inputIndex) => {
 			const args = util.splitArgs(argument);
 			const mode = util.defaultValue(util.parseInput(args[0]), 'lorem');
@@ -841,11 +867,14 @@ export const operators = {
 			const text = {
 				'lorem': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla semper odio nunc, in gravida mauris efficitur at. Pellentesque faucibus ligula et lacinia accumsan. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Ut accumsan nisi ut felis volutpat lacinia. Integer tristique nibh nulla, a congue nulla pellentesque in. Vestibulum mattis vulputate velit, ac hendrerit tellus malesuada in. Maecenas id eros sollicitudin nisi ultrices luctus id eu nibh. Curabitur hendrerit ultricies libero, dictum imperdiet eros sodales id. Suspendisse id consectetur metus.truetrueNulla facilisi. Aliquam erat volutpat. Quisque viverra leo eget risus vehicula, id pharetra dolor fringilla. Phasellus tempus lorem vel ornare vestibulum. Proin non metus odio. Aliquam pellentesque convallis varius. Cras cursus diam id orci euismod lobortis.truetrueNam metus leo, auctor vel odio ac, iaculis tempor ante. Aliquam id mauris quis dolor vestibulum feugiat. Etiam ullamcorper est vel nibh gravida viverra. Morbi scelerisque, lacus dictum molestie vestibulum, dolor ante fringilla quam, sed vehicula magna felis non risus. Sed in eros malesuada, imperdiet dui non, iaculis quam. In quis nisl a magna gravida venenatis non ac turpis. Vestibulum et sapien elit. Phasellus viverra odio imperdiet dolor gravida feugiat. Donec sit amet magna at ante sagittis semper.truetrueIn tristique nunc felis, in posuere magna aliquet eu. Cras hendrerit efficitur quam nec vestibulum. Ut metus nisl, malesuada non laoreet eget, mattis quis nisi. Sed vehicula turpis in eros efficitur, vel euismod mi commodo. Praesent mollis nibh consequat elementum sagittis. Morbi quis elit leo. Maecenas dictum hendrerit finibus. Pellentesque ut ultricies mi. Ut et aliquam libero, eu rutrum lorem. Vestibulum ut ante lorem. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Duis elementum interdum nulla feugiat tempus.truetrueDonec lectus lorem, auctor vitae risus in, semper lacinia tortor. Phasellus fermentum magna nec mauris varius, at ullamcorper magna euismod. Vestibulum vitae libero vestibulum, dignissim lorem at, congue magna. Donec blandit rhoncus placerat. Donec metus mi, condimentum vel varius a, sodales quis libero. Suspendisse metus nulla, congue quis lacus nec, ullamcorper scelerisque libero. Ut auctor molestie metus, dictum venenatis massa eleifend a.'
 			};
-			return text[mode];
+			const out = text[mode];
+			const pos = util.parseIntArg('w' + words.toString(), out);
+			return out.substring(0, pos);
 		},
 		'single'
 	).addParameters({
-		'mode': 'The text to generate'
+		'[mode]': 'The text to generate',
+		'[words]': 'How many words to give'
 	}),
 	'content': new util.Operator(
 		'content',
@@ -901,9 +930,10 @@ export const operators = {
 					for (let i = 0; i < out.length; i++) {
 						const direction = Math.round(Math.random()) * 2 - 1; //Normalize direction to -1 or 1;
 						const distance = util.limitValue(Math.floor(Math.random() * fac * direction) + i, 0, out.length - 1); //Get the position of the swap
-						/* Swap the values */
+						/* Check if words option is enabled and if the character is a word character */
 						const wordrx = /\w/;
 						if (!words || (wordrx.test(out[i]) && wordrx.test(out[distance]))) {
+							/* Swap the values */
 							const positions = swap(out[i], out[distance]);
 							out[i] = positions[0];
 							out[distance] = positions[1];
@@ -925,6 +955,14 @@ export const operators = {
 		'Removes a value from the list. \nUsage: end',
 		(input, argument, inputIndex) => {
 			return util.removeIdentifier;
+		},
+		'single'
+	),
+	'parse': new util.Operator(
+		'parse',
+		'Parses a value as if it were an argument. \nUsage: parse',
+		(input, argument, inputIndex) => {
+			return util.parseInput(input);
 		},
 		'single'
 	)
