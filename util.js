@@ -12,7 +12,6 @@ const variableCharacter = '?';
 
 /* Splits comma-separated arguments into an array */
 export const splitArgs = (args, delimiter = ',') => {
-	const quoterx = /(\"|\')/;
 	let out = [];
 	let currentString = '';
 	for (let i = 0; i < args.length; i++) {
@@ -32,20 +31,22 @@ export const parseInput = (input) => {
 	if (input === undefined || input === emptyIdentifier) return '';
 	let text = input.toString();
 	text = text.replace(/\\e/img, '');
-	if (fs.existsSync(input)) {
-		try {
-			text = fs.readFileSync(input, 'utf-8');
-		} catch (err) {
-			console.error(err);
+	if (text.startsWith('/') || text.startsWith('./')) {
+		if (fs.existsSync(input)) {
+			try {
+				text = fs.readFileSync(input, 'utf-8');
+			} catch (err) {
+				console.error(err);
+			}
 		}
 	} else {
 		text = text.replace(/\\n/mg, '\n');
-		if (text[0] === variableCharacter) {
-			text = variables[text.substring(1)];
-		}
-		if (text[0] === '\\') {
-			text = text.substring(1);
-		}
+	}
+	if (text.startsWith(variableCharacter)) {
+		text = variables[text.substring(1)];
+	}
+	if (text.startsWith('\\')) {
+		text = text.substring(1);
 	}
 	return text;
 };
@@ -266,12 +267,10 @@ export const normalizeSpacing = (text, delimiter) => {
 /* Capitalizes text in title case */
 export const caseTitle = (text) => {
 	text = text.toLowerCase();
-	const regex = /\W/mg;
+	const regex = /\W\w/mg;
 	const matches = text.matchAll(regex);
 	for (const match of matches) {
-		if (match.index !== text.length - 1) {
-			text = replaceAt(text, match.index + 1, 1, text[match.index + 1].toUpperCase());
-		}
+		text = replaceAt(text, match.index, 2, match[0].toUpperCase());
 	}
 	return replaceAt(text, 0, 1, text[0].toUpperCase());
 };

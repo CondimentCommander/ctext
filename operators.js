@@ -7,10 +7,9 @@ export const operators = {
 		'reverse',
 		'Reverses text direction. \nUsage: reverse',
 		(input, argument, inputIndex) => {
-			let out = '';
-			for (let i = input.length - 1; i > -1; i--) {
-				out = out + input[i];
-			}
+			let out = input.split('');
+			out.reverse();
+			out = out.join('');
 			return out;
 		},
 		'single'
@@ -288,7 +287,7 @@ export const operators = {
 			const index = util.parseIntArg(args[0], input);
 			const text = util.parseInput(args[1]);
 			const length = util.parseIntArg(util.defaultValue(args[2], text.length.toString()), input);
-			return util.replaceAt(input, index, length, util.parseInput(text));
+			return util.replaceAt(input, index, length, text);
 		},
 		'single'
 	).addParameters({

@@ -174,6 +174,7 @@ const main = (argv) => {
 	if (argv.p === true) {
 		console.log(Date.now() - startTime);
 	}
+	process.exit(0);
 };
 
 main(processArgs());
