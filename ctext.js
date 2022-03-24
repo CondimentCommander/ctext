@@ -9,7 +9,10 @@ import * as util from './util.js';
 const isOperator = (argument) => {
 	const notOps = [
 		'o',
-		'_'
+		'_',
+		'p',
+		'f',
+		'h'
 	];
 	const parts = argument.split('[');
 	return !(notOps.includes(parts[0])) && Object.keys(operators).includes(parts[0]);
@@ -34,7 +37,6 @@ const processArgs = () => {
 				args.push(util.emptyIdentifier);
 			} else {
 				const nextSplit = nextItem.split('[');
-				const nextName = nextSplit[0].substring(nextSplit[0].lastIndexOf('-') + 1, nextSplit[0].length);
 				if (nextSplit[0][0] === '-') {
 					args.push(util.emptyIdentifier);
 				}
@@ -107,6 +109,7 @@ const main = (argv, prof) => {
 		let toAppend = [];
 		let op = operators[operatorArgument.name];
 		util.clearArgCache();
+		util.clearValueCache();
 		if (op.type === 'single') {
 			for (let i = 0; i < lastEvaluation.length; i++) {
 				if (operatorArgument.selection.length === 0 || operatorArgument.selection.includes(i)) {

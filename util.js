@@ -19,7 +19,9 @@ export const splitArgs = (args, delimiter = ',') => {
 			out.push(currentString);
 			currentString = '';
 		} else if (!(currentString === '' && args[i] === ' ')) {
-			currentString = currentString + args[i];
+			if (!(args[i] === '\\' && args[i + 1] === ',')) {
+				currentString = currentString + args[i];
+			}
 		}
 	}
 	out.push(currentString);
@@ -28,9 +30,21 @@ export const splitArgs = (args, delimiter = ',') => {
 
 var fileCache = {};
 var argCache = {};
+export var valueCache = {};
+
 /* Clears the argument cache */
 export const clearArgCache = () => {
 	argCache = {};
+};
+
+/* Clears the value cache */
+export const clearValueCache = () => {
+	valueCache = {};
+};
+
+/* Adds a value to the value cache */
+export const cacheValue = (spot, value) => {
+	valueCache[spot] = value;
 };
 
 /* Parses an input and retrieves contents of a file if specified */
@@ -66,6 +80,36 @@ export const parseInput = (input, argName = '') => {
 		argCache[argName] = text;
 	}
 	return text;
+};
+
+/* Parses a single integer argument */
+export const parseIntArg = (argument, input, argName = '') => {
+	if (argument === undefined || argument === emptyIdentifier) return 0;
+	if (argCache[argName] !== undefined) {
+		return argCache[argName];
+	}
+	if (argument.startsWith(variableCharacter)) {
+		return variables[argument.substring(1)];
+	}
+	if (argument.startsWith(wordCharacter)) {
+		const wordPos = parseInt(argument.substring(1));
+		let index = specificIndexOf(input, /\W/mg, wordPos - 1);
+		if (index === undefined) index = 0;
+		return index;
+	} else {
+		if (argName !== '') {
+			argCache[argName] = parseInt(argument);
+		}
+		return parseInt(argument);
+	}
+};
+
+/* Parses arguments as integers */
+export const intParseArgs = (args, input) => {
+	args = args.map((arg, index) => {
+		return parseIntArg(arg, input, index);
+	});
+	return args;
 };
 
 export const parseArgs = (args, prev, delimiter = ',') => {
@@ -134,36 +178,6 @@ export const specificIndexOf = (string, regex, pos) => {
 		positions.push(match.index);
 	}
 	return positions[pos];
-};
-
-/* Parses a single integer argument */
-export const parseIntArg = (argument, input, argName = '') => {
-	if (argument === undefined || argument === emptyIdentifier) return 0;
-	if (argCache[argName] !== undefined) {
-		return argCache[argName];
-	}
-	if (argument.startsWith(variableCharacter)) {
-		return variables[argument.substring(1)];
-	}
-	if (argument.startsWith(wordCharacter)) {
-		const wordPos = parseInt(argument.substring(1));
-		let index = specificIndexOf(input, /\W/mg, wordPos - 1);
-		if (index === undefined) index = 0;
-		return index;
-	} else {
-		if (argName !== '') {
-			argCache[argName] = parseInt(argument);
-		}
-		return parseInt(argument);
-	}
-};
-
-/* Parses arguments as integers */
-export const intParseArgs = (args, input) => {
-	args = args.map((arg, index) => {
-		return parseIntArg(arg, input, index);
-	});
-	return args;
 };
 
 /* Obtains a box substring of text */
@@ -313,9 +327,9 @@ export class Operator {
 }
 
 /* Writes data to a text output file */
-export const writeOutput = async (output, text) => {
+export const writeOutput = (output, text) => {
 	if (fs.existsSync(output)) {
-		fs.writeFile(output, text, 'utf-8', () => {});
+		fs.writeFileSync(output, text, 'utf-8', () => {});
 	}
 };
 

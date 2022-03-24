@@ -20,6 +20,10 @@ export const operators = {
 		(input, argument, inputIndex) => {
 			let out = '';
 			if (argument === util.emptyIdentifier) return input;
+			const cachePos = input + '%%' + argument;
+			if (util.valueCache[cachePos] !== undefined) {
+				return util.valueCache[cachePos];
+			}
 			switch (argument) {
 				case 'upper': {
 					out = input.toUpperCase();
@@ -83,6 +87,7 @@ export const operators = {
 					break;
 				}
 			}
+			util.cacheValue(cachePos, out);
 			return out;
 		},
 		'single'
@@ -114,6 +119,10 @@ export const operators = {
 		'repeat',
 		'Repeats a string a certain amount of times. \nUsage: repeat [times],[delimiter]',
 		(input, argument, inputIndex) => {
+			const cachePos = input + '%%' + argument;
+			if (util.valueCache[cachePos] !== undefined) {
+				return util.valueCache[cachePos];
+			}
 			const args = util.splitArgs(argument);
 			const times = util.parseIntArg(util.defaultValue(args[0], '2'), input, 'times');
 			const delimiter = util.defaultValue(util.parseInput(args[1], 'delimiter'), '');
@@ -121,7 +130,9 @@ export const operators = {
 			for (let i = 0; i < times; i++) {
 				out.push(input);
 			}
-			return out.join(delimiter);
+			out = out.join(delimiter);
+			util.cacheValue(cachePos, out);
+			return out;
 		},
 		'single'
 	).addParameters({
@@ -197,7 +208,8 @@ export const operators = {
 		(input, argument, inputIndex) => {
 			const args = util.splitArgs(argument);
 			const reg = new RegExp(util.parseInput(args[0], 'search'), 'mg');
-			return input.replace(reg, util.defaultValue(util.parseInput(args[1], 'new'), ''));
+			const rep = input.replace(reg, util.defaultValue(util.parseInput(args[1], 'new'), ''));
+			return rep;
 		},
 		'single'
 	).addParameters({
@@ -226,9 +238,6 @@ export const operators = {
 			let out = '';
 			let done = false;
 			let positions = Array.from({length: sizes.length}, () => {return 0});
-			// for (let i = 0; i < sizes.length; i++) {
-			// 	positions.push(0);
-			// }
 			while (!done) {
 				done = true;
 				inputs.forEach((input, i) => {
@@ -295,8 +304,12 @@ export const operators = {
 		'stretch',
 		'Repeats letters. \nUsage: stretch [amount]',
 		(input, argument, inputIndex) => {
+			const cachePos = input + '%%' + argument;
+			if (util.valueCache[cachePos] !== undefined) {
+				return util.valueCache[cachePos];
+			}
 			let out = '';
-			const size = util.parseIntArg(util.defaultValue(argument, '1'), input, 'size');
+			const size = util.parseIntArg(util.defaultValue(argument, '1'), input, 'amount');
 			for (let i = 0; i < input.length; i++) {
 				if (input[i] === ' ') {
 					out = out + input[i];
@@ -306,6 +319,7 @@ export const operators = {
 					}
 				}
 			}
+			util.cacheValue(cachePos, out);
 			return out;
 		},
 		'single'
@@ -316,6 +330,10 @@ export const operators = {
 		'otp',
 		'One time pad cipher. \nUsage: key,mode',
 		(input, argument, inputIndex) => {
+			const cachePos = input + '%%' + argument;
+			if (util.valueCache[cachePos] !== undefined) {
+				return util.valueCache[cachePos];
+			}
 			const args = util.splitArgs(argument);
 			const key = util.numEncode(util.parseInput(args[0], 'key'));
 			const encoded = util.numEncode(input);
@@ -333,7 +351,9 @@ export const operators = {
 					}
 				}
 			}
-			return util.numDecode(out);
+			out = util.numDecode(out);
+			util.cacheValue(cachePos, out);
+			return out;
 		},
 		'single'
 	).addParameters({
@@ -584,13 +604,19 @@ export const operators = {
 		'cshift',
 		'Caesar\'s shift cipher. \nUsage: cshift offset',
 		(input, argument, inputIndex) => {
+			const cachePos = input + '%%' + argument;
+			if (util.valueCache[cachePos] !== undefined) {
+				return util.valueCache[cachePos];
+			}
 			const amount = util.parseIntArg(argument, input, 'offset');
 			const encode = util.numEncode(input);
 			let out = [];
 			encode.forEach((char) => {
 				out.push(util.wrapNum(char + amount));
 			});
-			return util.numDecode(out);
+			out = util.numDecode(out);
+			util.cacheValue(cachePos, out);
+			return out;
 		},
 		'single'
 	).addParameters({
@@ -863,16 +889,20 @@ export const operators = {
 		'dummy',
 		'Generates dummy text. \nUsage: dummy [mode],[words]',
 		(input, argument, inputIndex) => {
+			const cachePos = input + '%%' + argument;
+			if (util.valueCache[cachePos] !== undefined) {
+				return util.valueCache[cachePos];
+			}
 			const args = util.splitArgs(argument);
 			const mode = util.defaultValue(util.parseInput(args[0]), 'lorem');
 			const words = util.parseIntArg(util.defaultValue(args[1], '15'), input);
 
 			const text = {
-				'lorem': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla semper odio nunc, in gravida mauris efficitur at. Pellentesque faucibus ligula et lacinia accumsan. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Ut accumsan nisi ut felis volutpat lacinia. Integer tristique nibh nulla, a congue nulla pellentesque in. Vestibulum mattis vulputate velit, ac hendrerit tellus malesuada in. Maecenas id eros sollicitudin nisi ultrices luctus id eu nibh. Curabitur hendrerit ultricies libero, dictum imperdiet eros sodales id. Suspendisse id consectetur metus.truetrueNulla facilisi. Aliquam erat volutpat. Quisque viverra leo eget risus vehicula, id pharetra dolor fringilla. Phasellus tempus lorem vel ornare vestibulum. Proin non metus odio. Aliquam pellentesque convallis varius. Cras cursus diam id orci euismod lobortis.truetrueNam metus leo, auctor vel odio ac, iaculis tempor ante. Aliquam id mauris quis dolor vestibulum feugiat. Etiam ullamcorper est vel nibh gravida viverra. Morbi scelerisque, lacus dictum molestie vestibulum, dolor ante fringilla quam, sed vehicula magna felis non risus. Sed in eros malesuada, imperdiet dui non, iaculis quam. In quis nisl a magna gravida venenatis non ac turpis. Vestibulum et sapien elit. Phasellus viverra odio imperdiet dolor gravida feugiat. Donec sit amet magna at ante sagittis semper.truetrueIn tristique nunc felis, in posuere magna aliquet eu. Cras hendrerit efficitur quam nec vestibulum. Ut metus nisl, malesuada non laoreet eget, mattis quis nisi. Sed vehicula turpis in eros efficitur, vel euismod mi commodo. Praesent mollis nibh consequat elementum sagittis. Morbi quis elit leo. Maecenas dictum hendrerit finibus. Pellentesque ut ultricies mi. Ut et aliquam libero, eu rutrum lorem. Vestibulum ut ante lorem. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Duis elementum interdum nulla feugiat tempus.truetrueDonec lectus lorem, auctor vitae risus in, semper lacinia tortor. Phasellus fermentum magna nec mauris varius, at ullamcorper magna euismod. Vestibulum vitae libero vestibulum, dignissim lorem at, congue magna. Donec blandit rhoncus placerat. Donec metus mi, condimentum vel varius a, sodales quis libero. Suspendisse metus nulla, congue quis lacus nec, ullamcorper scelerisque libero. Ut auctor molestie metus, dictum venenatis massa eleifend a.'
+				'lorem': ['Lorem', 'ipsum', 'dolor', 'sit', 'amet,', 'consectetur', 'adipiscing', 'elit.', 'Nulla', 'semper', 'odio', 'nunc,', 'in', 'gravida', 'mauris', 'efficitur', 'at.', 'Pellentesque', 'faucibus', 'ligula', 'et', 'lacinia', 'accumsan.', 'Vestibulum', 'ante', 'ipsum', 'primis', 'in', 'faucibus', 'orci', 'luctus', 'et', 'ultrices', 'posuere', 'cubilia', 'curae;', 'Ut', 'accumsan', 'nisi', 'ut', 'felis', 'volutpat', 'lacinia.', 'Integer', 'tristique', 'nibh', 'nulla,', 'a', 'congue', 'nulla', 'pellentesque', 'in.', 'Vestibulum', 'mattis', 'vulputate', 'velit,', 'ac', 'hendrerit', 'tellus', 'malesuada', 'in.', 'Maecenas', 'id', 'eros', 'sollicitudin', 'nisi', 'ultrices', 'luctus', 'id', 'eu', 'nibh.', 'Curabitur', 'hendrerit', 'ultricies', 'libero,', 'dictum', 'imperdiet', 'eros', 'sodales', 'id.', 'Suspendisse', 'id', 'consectetur', 'metus.truetrueNulla', 'facilisi.', 'Aliquam', 'erat', 'volutpat.', 'Quisque', 'viverra', 'leo', 'eget', 'risus', 'vehicula,', 'id', 'pharetra', 'dolor', 'fringilla.', 'Phasellus', 'tempus', 'lorem', 'vel', 'ornare', 'vestibulum.', 'Proin', 'non', 'metus', 'odio.', 'Aliquam', 'pellentesque', 'convallis', 'varius.', 'Cras', 'cursus', 'diam', 'id', 'orci', 'euismod', 'lobortis.truetrueNam', 'metus', 'leo,', 'auctor', 'vel', 'odio', 'ac,', 'iaculis', 'tempor', 'ante.', 'Aliquam', 'id', 'mauris', 'quis', 'dolor', 'vestibulum', 'feugiat.', 'Etiam', 'ullamcorper', 'est', 'vel', 'nibh', 'gravida', 'viverra.', 'Morbi', 'scelerisque,', 'lacus', 'dictum', 'molestie', 'vestibulum,', 'dolor', 'ante', 'fringilla', 'quam,', 'sed', 'vehicula', 'magna', 'felis', 'non', 'risus.', 'Sed', 'in', 'eros', 'malesuada,', 'imperdiet', 'dui', 'non,', 'iaculis', 'quam.', 'In', 'quis', 'nisl', 'a', 'magna', 'gravida', 'venenatis', 'non', 'ac', 'turpis.', 'Vestibulum', 'et', 'sapien', 'elit.', 'Phasellus', 'viverra', 'odio', 'imperdiet', 'dolor', 'gravida', 'feugiat.', 'Donec', 'sit', 'amet', 'magna', 'at', 'ante', 'sagittis', 'semper.truetrueIn', 'tristique', 'nunc', 'felis,', 'in', 'posuere', 'magna', 'aliquet', 'eu.', 'Cras', 'hendrerit', 'efficitur', 'quam', 'nec', 'vestibulum.', 'Ut', 'metus', 'nisl,', 'malesuada', 'non', 'laoreet', 'eget,', 'mattis', 'quis', 'nisi.', 'Sed', 'vehicula', 'turpis', 'in', 'eros', 'efficitur,', 'vel', 'euismod', 'mi', 'commodo.', 'Praesent', 'mollis', 'nibh', 'consequat', 'elementum', 'sagittis.', 'Morbi', 'quis', 'elit', 'leo.', 'Maecenas', 'dictum', 'hendrerit', 'finibus.', 'Pellentesque', 'ut', 'ultricies', 'mi.', 'Ut', 'et', 'aliquam', 'libero,', 'eu', 'rutrum', 'lorem.', 'Vestibulum', 'ut', 'ante', 'lorem.', 'Class', 'aptent', 'taciti', 'sociosqu', 'ad', 'litora', 'torquent', 'per', 'conubia', 'nostra,', 'per', 'inceptos', 'himenaeos.', 'Duis', 'elementum', 'interdum', 'nulla', 'feugiat', 'tempus.truetrueDonec', 'lectus', 'lorem,', 'auctor', 'vitae', 'risus', 'in,', 'semper', 'lacinia', 'tortor.', 'Phasellus', 'fermentum', 'magna', 'nec', 'mauris', 'varius,', 'at', 'ullamcorper', 'magna', 'euismod.', 'Vestibulum', 'vitae', 'libero', 'vestibulum,', 'dignissim', 'lorem', 'at,', 'congue', 'magna.', 'Donec', 'blandit', 'rhoncus', 'placerat.', 'Donec', 'metus', 'mi,', 'condimentum', 'vel', 'varius', 'a,', 'sodales', 'quis', 'libero.', 'Suspendisse', 'metus', 'nulla,', 'congue', 'quis', 'lacus', 'nec,', 'ullamcorper', 'scelerisque', 'libero.', 'Ut', 'auctor', 'molestie', 'metus,', 'dictum', 'venenatis', 'massa', 'eleifend', 'a']
 			};
-			const out = text[mode];
-			const pos = util.parseIntArg('w' + words.toString(), out);
-			return out.substring(0, pos);
+			const out = text[mode].slice(0, words - 1).join(' ');
+			util.cacheValue(cachePos, out);
+			return out;
 		},
 		'single'
 	).addParameters({
@@ -916,6 +946,10 @@ export const operators = {
 		'scramble',
 		'Rearranges characters in a string. \nUsage: scramble [mode],[factor],[words]',
 		(input, argument, inputIndex) => {
+			const cachePos = input + '%%' + argument;
+			if (util.valueCache[cachePos] !== undefined) {
+				return util.valueCache[cachePos];
+			}
 			const args = util.splitArgs(argument);
 			const mode = util.defaultValue(util.parseInput(args[0], 'mode'), 'shuffle');
 			const fac = util.parseIntArg(util.defaultValue(args[1], '2'), input, 'fac');
@@ -945,7 +979,9 @@ export const operators = {
 					break;
 				}
 			}
-			return out.join('');
+			out = out.join('');
+			util.cacheValue(cachePos, out);
+			return out;
 		},
 		'single'
 	).addParameters({
@@ -965,7 +1001,7 @@ export const operators = {
 		'parse',
 		'Parses a value as if it were an argument. \nUsage: parse',
 		(input, argument, inputIndex) => {
-			return util.parseInput(input);
+			return util.parseInput(input, input);
 		},
 		'single'
 	)
