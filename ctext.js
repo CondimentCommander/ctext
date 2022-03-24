@@ -70,7 +70,7 @@ const evalInput = async (input, operator, argument) => {
 };
 
 /* Main Function */
-const main = (argv) => {
+const main = (argv, prof) => {
 	const startTime = Date.now();
 	//console.log(argv);
 	let inputs = argv._.map((input) => {return util.parseInput(input)});
@@ -101,10 +101,12 @@ const main = (argv) => {
 	/* Apply the operators */
 	let evaluated = inputs;
 	opsToApply.forEach((operatorArgument) => {
+		const opStart = Date.now();
 		const lastEvaluation = evaluated;
 		evaluated = [];
 		let toAppend = [];
 		let op = operators[operatorArgument.name];
+		util.clearArgCache();
 		if (op.type === 'single') {
 			for (let i = 0; i < lastEvaluation.length; i++) {
 				if (operatorArgument.selection.length === 0 || operatorArgument.selection.includes(i)) {
@@ -144,11 +146,12 @@ const main = (argv) => {
 		toAppend.forEach((item) => {
 			evaluated.push(item);
 		});
+		prof.ops.push(`Operator ${operatorArgument.name} took ${Date.now() - opStart} milliseconds`);
 	});
+	const maxLength = 450;
 	/* Pipe values to outputs */
 	evaluated.forEach((value, i) => {
 		if (argv.h !== true) {
-			const maxLength = 450;
 			if (value.length <= maxLength || argv.f === true) {
 				console.log(`${chalk.green('"')}${chalk.greenBright(value)}${chalk.green('"')}`);
 			} else {
@@ -172,9 +175,20 @@ const main = (argv) => {
 		}
 	});
 	if (argv.p === true) {
-		console.log(`Operations took ${Date.now() - startTime} milliseconds`);
+		console.log(chalk.blueBright(`Processing command took ${prof.args} milliseconds`));
+		prof.ops.forEach((msg) => {
+			console.log(chalk.blueBright(msg));
+		});
+		console.log(chalk.blueBright(`Processing operations took ${Date.now() - startTime} milliseconds`));
 	}
-	process.exit(0);
 };
 
-main(processArgs());
+var profiling = {
+	'ops': []
+};
+var preParseStart = Date.now();
+var args = processArgs();
+profiling.args = Date.now() - preParseStart;
+await main(args, profiling);
+
+process.exit(0);

@@ -26,18 +26,32 @@ export const splitArgs = (args, delimiter = ',') => {
 	return out;
 };
 
+var fileCache = {};
+var argCache = {};
+/* Clears the argument cache */
+export const clearArgCache = () => {
+	argCache = {};
+};
+
 /* Parses an input and retrieves contents of a file if specified */
-export const parseInput = (input) => {
+export const parseInput = (input, argName = '') => {
 	if (input === undefined || input === emptyIdentifier) return '';
 	let text = input.toString();
+	if (argCache[argName] !== undefined) {
+		return argCache[argName];
+	}
 	text = text.replace(/\\e/img, '');
-	if (text.startsWith('/') || text.startsWith('./')) {
-		if (fs.existsSync(input)) {
+	if (text.startsWith('/')) {
+		const cut = text.substring(1);
+		if (fileCache[cut] !== undefined) {
+			text = fileCache[cut];
+		} else if (fs.existsSync(cut)) {
 			try {
-				text = fs.readFileSync(input, 'utf-8');
+				text = fs.readFileSync(cut, 'utf-8');
 			} catch (err) {
 				console.error(err);
 			}
+			fileCache[cut] = text;
 		}
 	} else {
 		text = text.replace(/\\n/mg, '\n');
@@ -47,6 +61,9 @@ export const parseInput = (input) => {
 	}
 	if (text.startsWith('\\')) {
 		text = text.substring(1);
+	}
+	if (argName !== '') {
+		argCache[argName] = text;
 	}
 	return text;
 };
@@ -58,7 +75,7 @@ export const parseArgs = (args, prev, delimiter = ',') => {
 	const split = splitArgs(args, delimiter);
 };
 
-export const variables = {};
+export var variables = {};
 
 export const setVar = (name, value) => {
 	variables[name] = value;
@@ -120,28 +137,33 @@ export const specificIndexOf = (string, regex, pos) => {
 };
 
 /* Parses a single integer argument */
-export const parseIntArg = (argument, input) => {
-	if (argument === undefined || argument === emptyIdentifier) return 0; 
-	if (argument[0] === variableCharacter) {
+export const parseIntArg = (argument, input, argName = '') => {
+	if (argument === undefined || argument === emptyIdentifier) return 0;
+	if (argCache[argName] !== undefined) {
+		return argCache[argName];
+	}
+	if (argument.startsWith(variableCharacter)) {
 		return variables[argument.substring(1)];
 	}
-	if (argument[0] === wordCharacter) {
+	if (argument.startsWith(wordCharacter)) {
 		const wordPos = parseInt(argument.substring(1));
-		let index = specificIndexOf(input, /\s/mg, wordPos - 1);
+		let index = specificIndexOf(input, /\W/mg, wordPos - 1);
 		if (index === undefined) index = 0;
 		return index;
 	} else {
+		if (argName !== '') {
+			argCache[argName] = parseInt(argument);
+		}
 		return parseInt(argument);
 	}
 };
 
 /* Parses arguments as integers */
 export const intParseArgs = (args, input) => {
-	let out = [];
-	args.forEach((arg) => {
-		out.push(parseIntArg(arg, input));
+	args = args.map((arg, index) => {
+		return parseIntArg(arg, input, index);
 	});
-	return out;
+	return args;
 };
 
 /* Obtains a box substring of text */
@@ -197,7 +219,7 @@ export const numEncodeMap = {
 	'x': 24,
 	'y': 25,
 	'z': 26,
-}
+};
 /* Encodes text to an array of numbers */
 export const numEncode = (string) => {
 	const lower = string.toLowerCase();
@@ -270,7 +292,7 @@ export const caseTitle = (text) => {
 	const regex = /\W\w/mg;
 	const matches = text.matchAll(regex);
 	for (const match of matches) {
-		text = replaceAt(text, match.index, 2, match[0].toUpperCase());
+		text = replaceAt(text, match.index, 2, match[0][0] + caseReverseMap[match[0][1]]);
 	}
 	return replaceAt(text, 0, 1, text[0].toUpperCase());
 };

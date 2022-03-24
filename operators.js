@@ -104,7 +104,7 @@ export const operators = {
 		'append',
 		'Appends a string to another. \nUsage: append text',
 		(input, argument, inputIndex) => {
-			return input + util.defaultValue(util.parseInput(argument), '');
+			return input + util.defaultValue(util.parseInput(argument, 'text'), '');
 		},
 		'single'
 	).addParameters({
@@ -114,19 +114,14 @@ export const operators = {
 		'repeat',
 		'Repeats a string a certain amount of times. \nUsage: repeat [times],[delimiter]',
 		(input, argument, inputIndex) => {
-			console.log(argument);
 			const args = util.splitArgs(argument);
-			const times = util.parseIntArg(util.defaultValue(args[0], '2'), input);
-			const delimiter = util.defaultValue(util.parseInput(args[1]), '');
-			let out = '';
+			const times = util.parseIntArg(util.defaultValue(args[0], '2'), input, 'times');
+			const delimiter = util.defaultValue(util.parseInput(args[1], 'delimiter'), '');
+			let out = [];
 			for (let i = 0; i < times; i++) {
-				if (i === times - 1) {
-					out = out + input;
-				} else {
-					out = out + input + delimiter;
-				}
+				out.push(input);
 			}
-			return out;
+			return out.join(delimiter);
 		},
 		'single'
 	).addParameters({
@@ -176,13 +171,13 @@ export const operators = {
 		'startrow': 'The row to begin the substring at',
 		'startcol': 'The column to begin the substring at',
 		'endrow': 'The row to end the substring at. If a hyphen is used to separate the arguments, will use relative positioning',
-		'endrow': 'The column to end the substring at. If a hyphen is used to separate the arguments, will use relative positioning'
+		'endcol': 'The column to end the substring at. If a hyphen is used to separate the arguments, will use relative positioning'
 	}),
 	'at': new util.Operator(
 		'at',
 		'Obtains the character at a position. \nUsage: at position OR at row-col',
 		(input, argument, inputIndex) => {
-			if (input.includes(',')) {
+			if (argument.includes(',')) {
 				const args = util.intParseArgs(util.splitArgs(argument), input);
 				const lines = util.linify(input);
 				return lines[args[0] - 1][args[1] - 1];
@@ -198,16 +193,16 @@ export const operators = {
 	}),
 	'replace': new util.Operator(
 		'replace',
-		'Replaces occurences of a string with another one. \nUsage: replace search,new',
+		'Replaces occurences of a string with another one. \nUsage: replace search,[new]',
 		(input, argument, inputIndex) => {
 			const args = util.splitArgs(argument);
-			const reg = new RegExp(util.parseInput(args[0]), 'mg');
-			return input.replace(reg, util.defaultValue(util.parseInput(args[1]), ''));
+			const reg = new RegExp(util.parseInput(args[0], 'search'), 'mg');
+			return input.replace(reg, util.defaultValue(util.parseInput(args[1], 'new'), ''));
 		},
 		'single'
 	).addParameters({
 		'search': 'The string to search for',
-		'new': 'The string to replace the matches with'
+		'[new]': 'The string to replace the matches with. Defaults to deleting the matches'
 	}),
 	'weave': new util.Operator(
 		'weave',
@@ -217,23 +212,23 @@ export const operators = {
 			let sizes = [];
 			inputs.forEach((input, index) => {
 				let size = args[index];
-				if (size === undefined) {
+				if (size === undefined || size === util.emptyIdentifier) {
 					if (index === 0) {
-						size = 0;
+						size = 1;
 					} else {
-						size = sizes[i - 1];
+						size = sizes[index - 1];
 					}
 				} else {
-					size = util.parseIntArg(size, input);
+					size = util.parseIntArg(size, input, index);
 				}
 				sizes.push(size);
 			});
 			let out = '';
 			let done = false;
-			let positions = [];
-			for (let i = 0; i < sizes.length; i++) {
-				positions.push(0);
-			}
+			let positions = Array.from({length: sizes.length}, () => {return 0});
+			// for (let i = 0; i < sizes.length; i++) {
+			// 	positions.push(0);
+			// }
 			while (!done) {
 				done = true;
 				inputs.forEach((input, i) => {
@@ -258,7 +253,7 @@ export const operators = {
 		'shrink',
 		'Removes characters from the beginning or end of text. \nUsage: shrink [amount]',
 		(input, argument, inputIndex) => {
-			const arg = util.parseIntArg(util.defaultValue(argument, '-1'), input);
+			const arg = util.parseIntArg(util.defaultValue(argument, '-1'), input, 'amount');
 			if (arg < 0) {
 				return input.substring(0, input.length + arg);
 			} else {
@@ -273,7 +268,7 @@ export const operators = {
 		'oneliner',
 		'Removes all newlines. \nUsage: oneliner [delimiter]',
 		(input, argument, inputIndex) => {
-			const arg = util.defaultValue(util.parseInput(argument), '');
+			const arg = util.defaultValue(util.parseInput(argument, 'delimiter'), '');
 			return input.replace(/\n/mg, arg);
 		},
 		'single'
@@ -285,9 +280,9 @@ export const operators = {
 		'Replaces text at a specified index. \nUsage: place position,text,[length]',
 		(input, argument, inputIndex) => {
 			const args = util.splitArgs(argument);
-			const index = util.parseIntArg(args[0], input);
-			const text = util.parseInput(args[1]);
-			const length = util.parseIntArg(util.defaultValue(args[2], text.length.toString()), input);
+			const index = util.parseIntArg(args[0], input, 'index');
+			const text = util.parseInput(args[1], 'text');
+			const length = util.parseIntArg(util.defaultValue(args[2], text.length.toString()), input, 'length');
 			return util.replaceAt(input, index, length, text);
 		},
 		'single'
@@ -301,7 +296,7 @@ export const operators = {
 		'Repeats letters. \nUsage: stretch [amount]',
 		(input, argument, inputIndex) => {
 			let out = '';
-			const size = util.parseIntArg(util.defaultValue(argument, '1'), input);
+			const size = util.parseIntArg(util.defaultValue(argument, '1'), input, 'size');
 			for (let i = 0; i < input.length; i++) {
 				if (input[i] === ' ') {
 					out = out + input[i];
@@ -322,10 +317,10 @@ export const operators = {
 		'One time pad cipher. \nUsage: key,mode',
 		(input, argument, inputIndex) => {
 			const args = util.splitArgs(argument);
-			const key = util.numEncode(util.parseInput(args[0]));
+			const key = util.numEncode(util.parseInput(args[0], 'key'));
 			const encoded = util.numEncode(input);
 
-			const mode = args[1];
+			const mode = util.parseInput(args[1], 'mode');
 			let out = [];
 			for (let i = 0; i < encoded.length; i++) {
 				if (i >= key.length) {
@@ -349,6 +344,7 @@ export const operators = {
 		'help',
 		'Gives help info. \nUsage: help [operator]',
 		(input, argument, inputIndex) => {
+			if (inputIndex !== 0) return input;
 			if (argument === util.emptyIdentifier) {
 				let out = [];
 				for (let i = 0; i < Object.keys(operators).length; i++) {
@@ -379,7 +375,7 @@ export const operators = {
 		(input, argument, inputIndex) => {
 			const args = util.splitArgs(argument);
 			const pos = util.parseIntArg(args[1], input);
-			return input.substring(0, pos) + util.parseInput(args[0]) + input.substring(pos);
+			return input.substring(0, pos) + util.parseInput(args[0], 'text') + input.substring(pos);
 		},
 		'single'
 	).addParameters({
@@ -421,7 +417,7 @@ export const operators = {
 		'duplicate',
 		'Duplicates a single input into multiple of the same. \nUsage: duplicate [times]',
 		(input, argument, inputIndex) => {
-			const times = util.parseIntArg(util.defaultValue(argument, '1'), input) + 1;
+			const times = util.parseIntArg(util.defaultValue(argument, '1'), input, 'times') + 1;
 			let array = [];
 			for (let i = 0; i < times; i++) {
 				array.push(input);
@@ -436,7 +432,7 @@ export const operators = {
 		'split',
 		'Splits a string into multiple values based on a delimiter. \nUsage: split [delimiter]',
 		(input, argument, inputIndex) => {
-			const split = input.split(util.defaultValue(util.parseInput(argument), ' '));
+			const split = input.split(util.defaultValue(util.parseInput(argument, 'delimiter'), ' '));
 			return split;
 		},
 		'single'
@@ -546,9 +542,9 @@ export const operators = {
 			const split = input.split('\n');
 			const args = util.splitArgs(argument);
 			let out = [];
-			switch (util.parseInput(args[0])) {
+			switch (util.parseInput(args[0], 'mode')) {
 				case 'has': {
-					const search = util.parseInput(args[1]);
+					const search = util.parseInput(args[1], 'criteria');
 					out = split.filter((line) => {
 						return (line.indexOf(search) !== -1);
 					});
@@ -588,7 +584,7 @@ export const operators = {
 		'cshift',
 		'Caesar\'s shift cipher. \nUsage: cshift offset',
 		(input, argument, inputIndex) => {
-			const amount = util.parseIntArg(argument);
+			const amount = util.parseIntArg(argument, input, 'offset');
 			const encode = util.numEncode(input);
 			let out = [];
 			encode.forEach((char) => {
@@ -624,7 +620,7 @@ export const operators = {
 		'Adds line numbers to text. \nUsage: linenumbers [start]',
 		(input, argument, inputIndex) => {
 			const split = input.split('\n');
-			const offset = util.parseIntArg(util.defaultValue(argument, '1'), input);
+			const offset = util.parseIntArg(util.defaultValue(argument, '1'), input, 'start');
 			const length = split.length + offset;
 			const size = length.toString().length;
 			let out = '';
@@ -647,8 +643,8 @@ export const operators = {
 		'Adds characters to a string to make it reach a certain length. \nUsage: pad length,[character]',
 		(input, argument, inputIndex) => {
 			const args = util.splitArgs(argument);
-			const length = util.parseIntArg(args[0], input);
-			const character = util.defaultValue(util.parseInput(args[1]), ' ');
+			const length = util.parseIntArg(args[0], input, 'length');
+			const character = util.defaultValue(util.parseInput(args[1], 'character'), ' ');
 			if (character.length > 1 || input.length >= length) {
 				return input;
 			} else {
@@ -670,8 +666,11 @@ export const operators = {
 		'Inserts a set of strings at random positions in another string. \nUsage: toss amount,item1,item2...',
 		(input, argument, inputIndex) => {
 			let args = util.splitArgs(argument);
-			const times = util.parseIntArg(args[0], input);
+			const times = util.parseIntArg(args[0], input, 'times');
 			args.splice(0, 1);
+			args.map((item, index) => {
+				return util.parseInput(item, index);
+			});
 			let out = input;
 			for (let i = 0; i < times; i++) {
 				const choice = Math.floor(Math.random() * args.length);
@@ -712,44 +711,43 @@ export const operators = {
 					}
 				}
 				return out.join(' ');
+			} else {
+				let split = [];
+				for (let i = 0; i < clean.length; i+= 3) {
+					split.unshift(parseInt(clean.substring(clean.length - i - 3, clean.length - i)));
+				}
+				let out = '';
+				split.forEach((bunch, index) => {
+					const string = bunch.toString();
+					let secondPart = parseInt(string.substring(string.length - 2, string.length));
+					if (isNaN(secondPart)) secondPart = bunch;
+					if (secondPart === 0) {
+						secondPart = '';
+					} else if (secondPart < 10) {
+						secondPart = singles[secondPart];
+					} else if (secondPart < 20) {
+						secondPart = teens[secondPart - 10];
+					} else if (secondPart < 100) {
+						const parts = secondPart.toString();
+						const double = parseInt(parts[0]);
+						const single = parseInt(parts[1]);
+						secondPart = `${doubles[double - 2]} ${singles[single]}`;
+					}
+					let trickyPart = secondPart;
+					if (bunch >= 100) {
+						const parts = bunch.toString();
+						const triple = parseInt(parts[0]);
+						trickyPart = `${singles[triple]} ${bigs[0]} ${trickyPart}`;
+					}
+					if (index === split.length - 1) {
+						const hundreds = parseInt(bunch.toString()[0]);
+						out = `${out} ${trickyPart}`;
+					} else {
+						out = `${out} ${trickyPart} ${bigs[split.length - index - 1]},`;
+					}
+				});
+				return out.trim();
 			}
-
-			let split = [];
-			for (let i = 0; i < clean.length; i+= 3) {
-				split.unshift(parseInt(clean.substring(clean.length - i - 3, clean.length - i)));
-			}
-			let out = '';
-			split.forEach((bunch, index) => {
-				const string = bunch.toString();
-				let secondPart = parseInt(string.substring(string.length - 2, string.length));
-				if (isNaN(secondPart)) secondPart = bunch;
-				if (secondPart === 0) {
-					secondPart = '';
-				} else if (secondPart < 10) {
-					secondPart = singles[secondPart];
-				} else if (secondPart < 20) {
-					secondPart = teens[secondPart - 10];
-				} else if (secondPart < 100) {
-					const parts = secondPart.toString();
-					const double = parseInt(parts[0]);
-					const single = parseInt(parts[1]);
-					secondPart = `${doubles[double - 2]} ${singles[single]}`;
-				}
-				let trickyPart = secondPart;
-				if (bunch >= 100) {
-					const parts = bunch.toString();
-					const triple = parseInt(parts[0]);
-					trickyPart = `${singles[triple]} ${bigs[0]} ${trickyPart}`;
-				}
-				if (index === split.length - 1) {
-					const hundreds = parseInt(bunch.toString()[0]);
-					out = `${out} ${trickyPart}`;
-				} else {
-					out = `${out} ${trickyPart} ${bigs[split.length - index - 1]},`;
-				}
-			});
-
-			return out.trim();
 		},
 		'single'
 	).addParameters({
@@ -786,7 +784,7 @@ export const operators = {
 		'divide',
 		'Splits a string into multiple values at an interval. \nUsage: divide [interval]',
 		(input, argument, inputIndex) => {
-			const interval = util.parseIntArg(util.defaultValue(argument, '1'), input);
+			const interval = util.parseIntArg(util.defaultValue(argument, '1'), input, 'interval');
 			let out = [];
 			for (let i = 0; i < input.length; i += interval) {
 				const endPoint = util.limitValue(i + interval, 0, input.length);
@@ -811,8 +809,8 @@ export const operators = {
 		'Wraps lines that exceed a certain length. \nUsage: wrap mode,length',
 		(input, argument, inputIndex) => {
 			const args = util.splitArgs(argument);
-			const mode = util.parseInput(args[0]);
-			const limit = util.parseIntArg(args[1], input);
+			const mode = util.parseInput(args[0], 'mode');
+			const limit = util.parseIntArg(args[1], input, 'length');
 
 			switch (mode) {
 				case 'block': {
@@ -850,11 +848,8 @@ export const operators = {
 		'cull',
 		'removes values that are empty. \nUsage: cull [string]',
 		(input, argument, inputIndex) => {
-			const arg = util.defaultValue(util.parseInput(argument), util.emptyIdentifier);
-			if (arg !== util.emptyIdentifier && input === arg) {
-				return util.removeIdentifier;
-			}
-			if (input === '' || input === util.emptyIdentifier) {
+			const arg = util.defaultValue(util.parseInput(argument, 'string'), '');
+			if (input === arg || input === util.emptyIdentifier) {
 				return util.removeIdentifier;
 			} else {
 				return input;
@@ -922,9 +917,9 @@ export const operators = {
 		'Rearranges characters in a string. \nUsage: scramble [mode],[factor],[words]',
 		(input, argument, inputIndex) => {
 			const args = util.splitArgs(argument);
-			const mode = util.defaultValue(util.parseInput(args[0]), 'shuffle');
-			const fac = util.parseIntArg(util.defaultValue(args[1], '2'), input);
-			const words = util.defaultValue(util.parseInput(args[2]), 'true') === 'true';
+			const mode = util.defaultValue(util.parseInput(args[0], 'mode'), 'shuffle');
+			const fac = util.parseIntArg(util.defaultValue(args[1], '2'), input, 'fac');
+			const words = util.defaultValue(util.parseInput(args[2], 'words'), 'true') === 'true';
 			let out = [];
 			for (let i = 0; i < input.length; i++) {
 				out.push(input[i]);
