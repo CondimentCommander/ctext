@@ -82,6 +82,26 @@ export const parseInput = (input, argName = '') => {
 	return text;
 };
 
+/* Parses a regex argument */
+export const parseRegex = (arg, defaultMods = 'mg', argName = '') => {
+	if (argCache[argName] !== undefined) {
+		return argCache[argName];
+	}
+	let out = parseInput(arg, argName + 'i');
+	if (/\/[img]*$/i.test(out)) {
+		const slashPos = out.lastIndexOf('/');
+		const pattern = out.substring(1, slashPos);
+		const modifiers = out.substring(slashPos + 1);
+		out = new RegExp(pattern, modifiers);
+	} else {
+		out = new RegExp(out, defaultMods);
+	}
+	if (argName !== '') {
+		argCache[argName] = out;
+	}
+	return out;
+};
+
 /* Parses a single integer argument */
 export const parseIntArg = (argument, input, argName = '') => {
 	if (argument === undefined || argument === emptyIdentifier) return 0;

@@ -207,7 +207,7 @@ export const operators = {
 		'Replaces occurences of a string with another one. \nUsage: replace search,[new]',
 		(input, argument, inputIndex) => {
 			const args = util.splitArgs(argument);
-			const reg = new RegExp(util.parseInput(args[0], 'search'), 'mg');
+			const reg = util.parseRegex(args[0], 'mg', 'search');
 			const rep = input.replace(reg, util.defaultValue(util.parseInput(args[1], 'new'), ''));
 			return rep;
 		},
@@ -452,7 +452,8 @@ export const operators = {
 		'split',
 		'Splits a string into multiple values based on a delimiter. \nUsage: split [delimiter]',
 		(input, argument, inputIndex) => {
-			const split = input.split(util.defaultValue(util.parseInput(argument, 'delimiter'), ' '));
+			const delimiter = util.defaultValue(util.parseRegex(argument, 'mg', 'delimiter'), ' ');
+			const split = input.split(delimiter);
 			return split;
 		},
 		'single'
@@ -564,7 +565,7 @@ export const operators = {
 			let out = [];
 			switch (util.parseInput(args[0], 'mode')) {
 				case 'has': {
-					const search = util.parseInput(args[1], 'criteria');
+					const search = util.parseRegex(args[1], 'g', 'criteria');
 					out = split.filter((line) => {
 						return (line.indexOf(search) !== -1);
 					});
@@ -874,7 +875,7 @@ export const operators = {
 		'cull',
 		'removes values that are empty. \nUsage: cull [string]',
 		(input, argument, inputIndex) => {
-			const arg = util.defaultValue(util.parseInput(argument, 'string'), '');
+			const arg = util.defaultValue(util.parseRegex(argument, 'mg', 'string'), '');
 			if (input === arg || input === util.emptyIdentifier) {
 				return util.removeIdentifier;
 			} else {
