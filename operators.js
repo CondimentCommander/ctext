@@ -1,5 +1,5 @@
 import * as util from './util.js';
-import fs from 'fs';
+import chalk from 'chalk';
 
 /* The list of operators available */
 export const operators = {
@@ -21,8 +21,8 @@ export const operators = {
 			let out = '';
 			if (argument === util.emptyIdentifier) return input;
 			const cachePos = input + '%%' + argument;
-			if (util.valueCache[cachePos] !== undefined) {
-				return util.valueCache[cachePos];
+			if (util.operatorCache.values[cachePos] !== undefined) {
+				return util.operatorCache.values[cachePos];
 			}
 			switch (argument) {
 				case 'upper': {
@@ -33,16 +33,18 @@ export const operators = {
 					out = input.toLowerCase();
 					break;
 				}
+				case 'pothole':
 				case 'snake': {
-					out = util.normalizeSpacing(input, '_');
+					out = util.normalizeSpacing(input, '_').toLowerCase();
 					break;
 				}
 				case 'dot': {
-					out = util.normalizeSpacing(input, '.');
+					out = util.normalizeSpacing(input, '.').toLowerCase();
 					break;
 				}
+				case 'kebab':
 				case 'dash': {
-					out = util.normalizeSpacing(input, '-');
+					out = util.normalizeSpacing(input, '-').toLowerCase();
 					break;
 				}
 				case 'constant': {
@@ -120,8 +122,8 @@ export const operators = {
 		'Repeats a string a certain amount of times. \nUsage: repeat [times],[delimiter]',
 		(input, argument, inputIndex) => {
 			const cachePos = input + '%%' + argument;
-			if (util.valueCache[cachePos] !== undefined) {
-				return util.valueCache[cachePos];
+			if (util.operatorCache.values[cachePos] !== undefined) {
+				return util.operatorCache.values[cachePos];
 			}
 			const args = util.splitArgs(argument);
 			const times = util.parseIntArg(util.defaultValue(args[0], '2'), input, 'times');
@@ -305,8 +307,8 @@ export const operators = {
 		'Repeats letters. \nUsage: stretch [amount]',
 		(input, argument, inputIndex) => {
 			const cachePos = input + '%%' + argument;
-			if (util.valueCache[cachePos] !== undefined) {
-				return util.valueCache[cachePos];
+			if (util.operatorCache.values[cachePos] !== undefined) {
+				return util.operatorCache.values[cachePos];
 			}
 			let out = '';
 			const size = util.parseIntArg(util.defaultValue(argument, '1'), input, 'amount');
@@ -331,8 +333,8 @@ export const operators = {
 		'One time pad cipher. \nUsage: key,mode',
 		(input, argument, inputIndex) => {
 			const cachePos = input + '%%' + argument;
-			if (util.valueCache[cachePos] !== undefined) {
-				return util.valueCache[cachePos];
+			if (util.operatorCache.values[cachePos] !== undefined) {
+				return util.operatorCache.values[cachePos];
 			}
 			const args = util.splitArgs(argument);
 			const key = util.numEncode(util.parseInput(args[0], 'key'));
@@ -606,8 +608,8 @@ export const operators = {
 		'Caesar\'s shift cipher. \nUsage: cshift offset',
 		(input, argument, inputIndex) => {
 			const cachePos = input + '%%' + argument;
-			if (util.valueCache[cachePos] !== undefined) {
-				return util.valueCache[cachePos];
+			if (util.operatorCache.values[cachePos] !== undefined) {
+				return util.operatorCache.values[cachePos];
 			}
 			const amount = util.parseIntArg(argument, input, 'offset');
 			const encode = util.numEncode(input);
@@ -891,8 +893,8 @@ export const operators = {
 		'Generates dummy text. \nUsage: dummy [mode],[words]',
 		(input, argument, inputIndex) => {
 			const cachePos = input + '%%' + argument;
-			if (util.valueCache[cachePos] !== undefined) {
-				return util.valueCache[cachePos];
+			if (util.operatorCache.values[cachePos] !== undefined) {
+				return util.operatorCache.values[cachePos];
 			}
 			const args = util.splitArgs(argument);
 			const mode = util.defaultValue(util.parseInput(args[0]), 'lorem');
@@ -948,8 +950,8 @@ export const operators = {
 		'Rearranges characters in a string. \nUsage: scramble [mode],[factor],[words]',
 		(input, argument, inputIndex) => {
 			const cachePos = input + '%%' + argument;
-			if (util.valueCache[cachePos] !== undefined) {
-				return util.valueCache[cachePos];
+			if (util.operatorCache.values[cachePos] !== undefined) {
+				return util.operatorCache.values[cachePos];
 			}
 			const args = util.splitArgs(argument);
 			const mode = util.defaultValue(util.parseInput(args[0], 'mode'), 'shuffle');
@@ -1005,5 +1007,19 @@ export const operators = {
 			return util.parseInput(input, input);
 		},
 		'single'
-	)
+	),
+	'style': new util.Operator(
+		'style',
+		'Styles text using chalk. \nUsage: style type',
+		(input, argument, inputIndex) => {
+			if (chalk[argument] !== undefined) {
+				return chalk[argument](input);
+			} else {
+				return input;
+			}
+		},
+		'single'
+	).addParameters({
+		'type': 'The type of style to use. May be any chalk style. Keep in mind that this will add special characters to the string'
+	})
 }

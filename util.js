@@ -28,44 +28,46 @@ export const splitArgs = (args, delimiter = ',') => {
 	return out;
 };
 
-var fileCache = {};
-var argCache = {};
-export var valueCache = {};
+export var operatorCache = {
+	files: {},
+	args: {},
+	values: {}
+}
 
 /* Clears the argument cache */
 export const clearArgCache = () => {
-	argCache = {};
+	operatorCache.args = {};
 };
 
 /* Clears the value cache */
 export const clearValueCache = () => {
-	valueCache = {};
+	operatorCache.values = {};
 };
 
 /* Adds a value to the value cache */
 export const cacheValue = (spot, value) => {
-	valueCache[spot] = value;
+	operatorCache.values[spot] = value;
 };
 
 /* Parses an input and retrieves contents of a file if specified */
 export const parseInput = (input, argName = '') => {
 	if (input === undefined || input === emptyIdentifier) return '';
 	let text = input.toString();
-	if (argCache[argName] !== undefined) {
-		return argCache[argName];
+	if (operatorCache.args[argName] !== undefined) {
+		return operatorCache.args[argName];
 	}
 	text = text.replace(/\\e/img, '');
 	if (text.startsWith('/')) {
 		const cut = text.substring(1);
-		if (fileCache[cut] !== undefined) {
-			text = fileCache[cut];
+		if (operatorCache.files[cut] !== undefined) {
+			text = operatorCache.files[cut];
 		} else if (fs.existsSync(cut)) {
 			try {
 				text = fs.readFileSync(cut, 'utf-8');
 			} catch (err) {
 				console.error(err);
 			}
-			fileCache[cut] = text;
+			operatorCache.files[cut] = text;
 		}
 	} else {
 		text = text.replace(/\\n/mg, '\n');
@@ -77,15 +79,15 @@ export const parseInput = (input, argName = '') => {
 		text = text.substring(1);
 	}
 	if (argName !== '') {
-		argCache[argName] = text;
+		operatorCache.args[argName] = text;
 	}
 	return text;
 };
 
 /* Parses a regex argument */
 export const parseRegex = (arg, defaultMods = 'mg', argName = '') => {
-	if (argCache[argName] !== undefined) {
-		return argCache[argName];
+	if (operatorCache.args[argName] !== undefined) {
+		return operatorCache.args[argName];
 	}
 	let out = parseInput(arg, argName + 'i');
 	if (/\/[img]*$/i.test(out)) {
@@ -97,7 +99,7 @@ export const parseRegex = (arg, defaultMods = 'mg', argName = '') => {
 		out = new RegExp(out, defaultMods);
 	}
 	if (argName !== '') {
-		argCache[argName] = out;
+		operatorCache.args[argName] = out;
 	}
 	return out;
 };
@@ -105,8 +107,8 @@ export const parseRegex = (arg, defaultMods = 'mg', argName = '') => {
 /* Parses a single integer argument */
 export const parseIntArg = (argument, input, argName = '') => {
 	if (argument === undefined || argument === emptyIdentifier) return 0;
-	if (argCache[argName] !== undefined) {
-		return argCache[argName];
+	if (operatorCache.args[argName] !== undefined) {
+		return operatorCache.args[argName];
 	}
 	if (argument.startsWith(variableCharacter)) {
 		return variables[argument.substring(1)];
@@ -118,7 +120,7 @@ export const parseIntArg = (argument, input, argName = '') => {
 		return index;
 	} else {
 		if (argName !== '') {
-			argCache[argName] = parseInt(argument);
+			operatorCache.args[argName] = parseInt(argument);
 		}
 		return parseInt(argument);
 	}
@@ -316,7 +318,6 @@ export const normalizeSpacing = (text, delimiter) => {
 			}
 		}
 	}
-	text = text.toLowerCase();
 	return text;
 };
 
